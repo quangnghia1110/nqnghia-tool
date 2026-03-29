@@ -17,7 +17,7 @@ import webbrowser
 import threading
 import mimetypes
 import tempfile
-import cgi
+import re as _re_mod
 
 # Fix numba cache issue on Windows Store Python
 os.environ.setdefault("NUMBA_CACHE_DIR", os.path.join(tempfile.gettempdir(), "numba_cache"))
@@ -34,6 +34,49 @@ TEMP_DIR = os.path.join(BASE_DIR, "temp")
 _task_results = {}   # task_id -> result dict
 _file_store = {}     # file_id -> file_path
 _convert_progress = {}  # task_id -> progress dict
+
+
+def _parse_multipart(body: bytes, content_type: str):
+    """Parse multipart/form-data without the deprecated cgi module.
+    Returns (fields_dict, files_list) where files_list items are (fieldname, filename, data).
+    """
+    boundary = content_type.split("boundary=")[-1].strip()
+    parts = body.split(b"--" + boundary.encode())
+    fields = {}
+    files = []
+    for part in parts:
+        part = part.strip()
+        if not part or part == b"--":
+            continue
+        if b"\r\n\r\n" in part:
+            header_section, data = part.split(b"\r\n\r\n", 1)
+        elif b"\n\n" in part:
+            header_section, data = part.split(b"\n\n", 1)
+        else:
+            continue
+        # Remove trailing \r\n-- from data
+        if data.endswith(b"\r\n"):
+            data = data[:-2]
+        headers_text = header_section.decode("utf-8", errors="replace")
+        # Parse Content-Disposition
+        name = None
+        filename = None
+        for line in headers_text.split("\n"):
+            line = line.strip()
+            if line.lower().startswith("content-disposition:"):
+                name_match = _re_mod.search(r'name="([^"]*)"', line)
+                fname_match = _re_mod.search(r'filename="([^"]*)"', line)
+                if name_match:
+                    name = name_match.group(1)
+                if fname_match:
+                    filename = fname_match.group(1)
+        if name is None:
+            continue
+        if filename is not None:
+            files.append((name, filename, data))
+        else:
+            fields[name] = data.decode("utf-8", errors="replace")
+    return fields, files
 
 
 class ToolsHandler(SimpleHTTPRequestHandler):
@@ -126,36 +169,15 @@ class ToolsHandler(SimpleHTTPRequestHandler):
             self._send_json({"error": "Expected multipart/form-data"}, status=400)
             return None, None, None
 
-        # Parse boundary
-        boundary = content_type.split("boundary=")[-1].strip()
         content_length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(content_length)
 
-        # Use cgi module to parse
-        environ = {
-            "REQUEST_METHOD": "POST",
-            "CONTENT_TYPE": content_type,
-            "CONTENT_LENGTH": str(content_length),
-        }
-        fs = cgi.FieldStorage(
-            fp=io.BytesIO(body),
-            environ=environ,
-            keep_blank_values=True,
-        )
+        fields, files = _parse_multipart(body, content_type)
 
-        fields = {}
         file_data = None
         file_name = None
-
-        for key in fs.keys():
-            item = fs[key]
-            if isinstance(item, list):
-                item = item[0]
-            if item.filename:
-                file_data = item.file.read()
-                file_name = item.filename
-            else:
-                fields[key] = item.value
+        if files:
+            _, file_name, file_data = files[0]
 
         return fields, file_data, file_name
 
@@ -670,12 +692,7 @@ class ToolsHandler(SimpleHTTPRequestHandler):
         content_length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(content_length)
 
-        environ = {
-            "REQUEST_METHOD": "POST",
-            "CONTENT_TYPE": content_type,
-            "CONTENT_LENGTH": str(content_length),
-        }
-        fs = cgi.FieldStorage(fp=io.BytesIO(body), environ=environ, keep_blank_values=True)
+        fields, files = _parse_multipart(body, content_type)
 
         # Collect all uploaded files
         os.makedirs(TEMP_DIR, exist_ok=True)
@@ -683,15 +700,11 @@ class ToolsHandler(SimpleHTTPRequestHandler):
         _convert_progress[task_id] = {"status": "processing", "percent": 0}
 
         file_paths = []
-        items = fs["files"] if "files" in fs else []
-        if not isinstance(items, list):
-            items = [items]
-
-        for item in items:
-            if item.filename:
-                path = os.path.join(TEMP_DIR, f"{task_id}_{item.filename}")
+        for fieldname, filename, data in files:
+            if fieldname == "files" and filename:
+                path = os.path.join(TEMP_DIR, f"{task_id}_{filename}")
                 with open(path, "wb") as f:
-                    f.write(item.file.read())
+                    f.write(data)
                 file_paths.append(path)
 
         if len(file_paths) < 2:
@@ -854,7 +867,11 @@ class ToolsHandler(SimpleHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(file_size))
-        self.send_header("Content-Disposition", f'attachment; filename="{file_name}"')
+        # Use RFC 5987 encoding for non-ASCII filenames
+        ascii_name = file_name.encode("ascii", errors="replace").decode("ascii")
+        encoded_name = urllib.parse.quote(file_name)
+        self.send_header("Content-Disposition",
+                         f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{encoded_name}")
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
 
