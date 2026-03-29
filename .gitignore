@@ -1,0 +1,7 @@
+__pycache__/
+downloads/
+temp/
+*.pyc
+*.zip
+.env
+node_modules/

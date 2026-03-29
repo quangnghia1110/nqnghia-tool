@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Dịch - NQNghia Tools</title>
+    <link rel="stylesheet" href="../style.css">
+    <style>
+        .container {
+            max-width: 900px;
+        }
+
+        .translate-wrapper {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .translate-col {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .lang-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .lang-row select {
+            flex: 1;
+            padding: 10px 12px;
+            background: var(--bg-input);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .lang-row select:focus {
+            border-color: var(--accent);
+        }
+
+        .swap-btn {
+            flex-shrink: 0;
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text);
+            font-size: 1.3rem;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+            align-self: center;
+            margin-top: 0;
+        }
+
+        .swap-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .translate-area {
+            width: 100%;
+            min-height: 200px;
+            max-height: 400px;
+            resize: vertical;
+            padding: 14px;
+            background: var(--bg-input);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 1rem;
+            font-family: inherit;
+            line-height: 1.6;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .translate-area:focus {
+            border-color: var(--accent);
+        }
+
+        .translate-area::placeholder {
+            color: var(--text-dim);
+        }
+
+        .translate-area[readonly] {
+            cursor: default;
+            opacity: 0.92;
+        }
+
+        .char-count {
+            text-align: right;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            margin-top: 4px;
+        }
+
+        .actions-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 14px;
+            flex-wrap: wrap;
+        }
+
+        .actions-row button {
+            padding: 9px 18px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-card);
+            color: var(--text);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .actions-row button:hover {
+            border-color: var(--accent);
+            background: var(--accent);
+        }
+
+        .btn-primary {
+            background: var(--accent) !important;
+            border-color: var(--accent) !important;
+            color: #fff !important;
+            font-weight: 600;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover) !important;
+            border-color: var(--accent-hover) !important;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--success);
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            font-weight: 600;
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 999;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.error {
+            background: var(--error);
+        }
+
+        /* History */
+        .history-section {
+            margin-top: 32px;
+        }
+
+        .history-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            cursor: pointer;
+            color: var(--text);
+            font-size: 0.95rem;
+            font-weight: 600;
+            transition: border-color 0.2s;
+        }
+
+        .history-toggle:hover {
+            border-color: var(--accent);
+        }
+
+        .history-toggle .arrow {
+            transition: transform 0.2s;
+            font-size: 0.8rem;
+        }
+
+        .history-toggle.open .arrow {
+            transform: rotate(180deg);
+        }
+
+        .history-list {
+            display: none;
+            margin-top: 8px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .history-list.open {
+            display: block;
+        }
+
+        .history-item {
+            display: flex;
+            gap: 10px;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-item:hover {
+            background: var(--bg-input);
+        }
+
+        .history-src {
+            flex: 1;
+            color: var(--text-dim);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .history-arrow {
+            color: var(--accent);
+            flex-shrink: 0;
+        }
+
+        .history-tgt {
+            flex: 1;
+            color: var(--text);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .history-clear {
+            padding: 8px 14px;
+            font-size: 0.8rem;
+            color: var(--error);
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        .history-clear:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .translate-wrapper {
+                flex-direction: column;
+            }
+
+            .swap-btn {
+                align-self: center;
+                transform: rotate(90deg);
+            }
+
+            .lang-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-nav">&larr; Quay lại</a>
+
+        <div class="download-card">
+            <h2 style="margin-bottom: 6px;">🌐 Google Dịch</h2>
+            <p style="color: var(--text-dim); margin-bottom: 20px;">Dịch văn bản giữa nhiều ngôn ngữ với Google Translate</p>
+
+            <!-- Language selectors -->
+            <div class="lang-row">
+                <select id="srcLang">
+                    <option value="auto">Tự động phát hiện</option>
+                    <option value="vi">Tiếng Việt</option>
+                    <option value="en">English</option>
+                    <option value="zh">中文</option>
+                    <option value="ja">日本語</option>
+                    <option value="ko">한국어</option>
+                    <option value="fr">Français</option>
+                    <option value="de">Deutsch</option>
+                    <option value="es">Español</option>
+                    <option value="pt">Português</option>
+                    <option value="ru">Русский</option>
+                    <option value="th">ภาษาไทย</option>
+                    <option value="id">Bahasa Indonesia</option>
+                    <option value="ar">العربية</option>
+                    <option value="hi">Hindi</option>
+                </select>
+
+                <button class="swap-btn" id="swapBtn" title="Hoán đổi ngôn ngữ">⇄</button>
+
+                <select id="tgtLang">
+                    <option value="vi" selected>Tiếng Việt</option>
+                    <option value="en">English</option>
+                    <option value="zh">中文</option>
+                    <option value="ja">日本語</option>
+                    <option value="ko">한국어</option>
+                    <option value="fr">Français</option>
+                    <option value="de">Deutsch</option>
+                    <option value="es">Español</option>
+                    <option value="pt">Português</option>
+                    <option value="ru">Русский</option>
+                    <option value="th">ภาษาไทย</option>
+                    <option value="id">Bahasa Indonesia</option>
+                    <option value="ar">العربية</option>
+                    <option value="hi">Hindi</option>
+                </select>
+            </div>
+
+            <!-- Textareas -->
+            <div class="translate-wrapper">
+                <div class="translate-col">
+                    <label style="font-size:0.85rem;color:var(--text-dim);margin-bottom:4px;display:block;">Ngôn ngữ nguồn</label>
+                    <textarea id="srcText" class="translate-area" placeholder="Nhập văn bản cần dịch..."></textarea>
+                    <div class="char-count"><span id="srcCount">0</span> ký tự</div>
+                </div>
+                <div class="translate-col">
+                    <label style="font-size:0.85rem;color:var(--text-dim);margin-bottom:4px;display:block;">Ngôn ngữ đích</label>
+                    <textarea id="tgtText" class="translate-area" placeholder="Bản dịch sẽ hiển thị ở đây..." readonly></textarea>
+                    <div class="char-count"><span id="tgtCount">0</span> ký tự</div>
+                </div>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="actions-row">
+                <button class="btn-primary" id="translateBtn">Dịch</button>
+                <button id="clearBtn">Xoá</button>
+                <button id="copyBtn">Sao chép</button>
+                <button id="speakBtn">🔊 Đọc</button>
+            </div>
+        </div>
+
+        <!-- History -->
+        <div class="history-section">
+            <div class="history-toggle" id="historyToggle">
+                <span>📜 Lịch sử dịch</span>
+                <span class="arrow">▼</span>
+            </div>
+            <div class="history-list" id="historyList"></div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const srcLang = document.getElementById('srcLang');
+        const tgtLang = document.getElementById('tgtLang');
+        const srcText = document.getElementById('srcText');
+        const tgtText = document.getElementById('tgtText');
+        const srcCount = document.getElementById('srcCount');
+        const tgtCount = document.getElementById('tgtCount');
+        const translateBtn = document.getElementById('translateBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const speakBtn = document.getElementById('speakBtn');
+        const swapBtn = document.getElementById('swapBtn');
+        const historyToggle = document.getElementById('historyToggle');
+        const historyList = document.getElementById('historyList');
+        const toast = document.getElementById('toast');
+
+        let debounceTimer = null;
+
+        // Toast
+        function showToast(msg, isError) {
+            toast.textContent = msg;
+            toast.className = 'toast show' + (isError ? ' error' : '');
+            setTimeout(() => toast.className = 'toast', 2000);
+        }
+
+        // Character counts
+        srcText.addEventListener('input', () => {
+            srcCount.textContent = srcText.value.length;
+            autoTranslate();
+        });
+
+        function updateTgtCount() {
+            tgtCount.textContent = tgtText.value.length;
+        }
+
+        // Auto-translate with debounce
+        function autoTranslate() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                if (srcText.value.trim()) doTranslate();
+            }, 500);
+        }
+
+        // Translate
+        async function doTranslate() {
+            const text = srcText.value.trim();
+            if (!text) return;
+
+            const sl = srcLang.value;
+            const tl = tgtLang.value;
+
+            translateBtn.disabled = true;
+            translateBtn.textContent = 'Đang dịch...';
+
+            try {
+                const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${encodeURIComponent(sl)}&tl=${encodeURIComponent(tl)}&dt=t&q=${encodeURIComponent(text)}`;
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('Lỗi kết nối');
+
+                const data = await res.json();
+                let translated = '';
+                if (data && data[0]) {
+                    for (const seg of data[0]) {
+                        if (seg[0]) translated += seg[0];
+                    }
+                }
+
+                tgtText.value = translated;
+                updateTgtCount();
+                saveHistory(text, translated, sl, tl);
+            } catch (e) {
+                showToast('Không thể dịch. Vui lòng thử lại.', true);
+            } finally {
+                translateBtn.disabled = false;
+                translateBtn.textContent = 'Dịch';
+            }
+        }
+
+        translateBtn.addEventListener('click', doTranslate);
+
+        // Swap languages
+        swapBtn.addEventListener('click', () => {
+            if (srcLang.value === 'auto') {
+                showToast('Không thể hoán đổi khi đang tự động phát hiện', true);
+                return;
+            }
+            const tmpLang = srcLang.value;
+            srcLang.value = tgtLang.value;
+            tgtLang.value = tmpLang;
+
+            const tmpText = srcText.value;
+            srcText.value = tgtText.value;
+            tgtText.value = tmpText;
+
+            srcCount.textContent = srcText.value.length;
+            updateTgtCount();
+
+            if (srcText.value.trim()) doTranslate();
+        });
+
+        // Also translate when language changes
+        srcLang.addEventListener('change', () => {
+            if (srcText.value.trim()) doTranslate();
+        });
+        tgtLang.addEventListener('change', () => {
+            if (srcText.value.trim()) doTranslate();
+        });
+
+        // Clear
+        clearBtn.addEventListener('click', () => {
+            srcText.value = '';
+            tgtText.value = '';
+            srcCount.textContent = '0';
+            tgtCount.textContent = '0';
+            srcText.focus();
+        });
+
+        // Copy
+        copyBtn.addEventListener('click', () => {
+            const text = tgtText.value;
+            if (!text) {
+                showToast('Chưa có bản dịch để sao chép', true);
+                return;
+            }
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Đã sao chép bản dịch!');
+            }).catch(() => {
+                showToast('Không thể sao chép', true);
+            });
+        });
+
+        // TTS
+        speakBtn.addEventListener('click', () => {
+            const text = tgtText.value;
+            if (!text) {
+                showToast('Chưa có bản dịch để đọc', true);
+                return;
+            }
+            speechSynthesis.cancel();
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.lang = tgtLang.value === 'zh' ? 'zh-CN' : tgtLang.value;
+            utter.rate = 0.95;
+            speechSynthesis.speak(utter);
+        });
+
+        // History
+        const HISTORY_KEY = 'nqnghia_translate_history';
+
+        function getHistory() {
+            try {
+                return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+            } catch {
+                return [];
+            }
+        }
+
+        function saveHistory(src, tgt, sl, tl) {
+            if (!src || !tgt) return;
+            let hist = getHistory();
+            // Avoid duplicate of latest
+            if (hist.length && hist[0].src === src && hist[0].tgt === tgt) return;
+            hist.unshift({ src, tgt, sl, tl, time: Date.now() });
+            if (hist.length > 20) hist = hist.slice(0, 20);
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const hist = getHistory();
+            if (!hist.length) {
+                historyList.innerHTML = '<div style="padding:14px;color:var(--text-dim);font-size:0.85rem;text-align:center;">Chưa có lịch sử dịch</div>';
+                return;
+            }
+
+            let html = '';
+            hist.forEach((item, i) => {
+                const srcSnip = item.src.length > 50 ? item.src.slice(0, 50) + '…' : item.src;
+                const tgtSnip = item.tgt.length > 50 ? item.tgt.slice(0, 50) + '…' : item.tgt;
+                html += `<div class="history-item" data-idx="${i}">
+                    <span class="history-src" title="${item.src.replace(/"/g, '&quot;')}">${escHtml(srcSnip)}</span>
+                    <span class="history-arrow">→</span>
+                    <span class="history-tgt" title="${item.tgt.replace(/"/g, '&quot;')}">${escHtml(tgtSnip)}</span>
+                </div>`;
+            });
+            html += '<div style="text-align:right;padding:6px 10px;"><button class="history-clear" id="clearHistory">Xoá lịch sử</button></div>';
+            historyList.innerHTML = html;
+
+            // Click to load
+            historyList.querySelectorAll('.history-item').forEach(el => {
+                el.addEventListener('click', () => {
+                    const idx = parseInt(el.dataset.idx);
+                    const item = hist[idx];
+                    if (!item) return;
+                    if (item.sl !== 'auto') srcLang.value = item.sl;
+                    tgtLang.value = item.tl;
+                    srcText.value = item.src;
+                    tgtText.value = item.tgt;
+                    srcCount.textContent = item.src.length;
+                    updateTgtCount();
+                });
+            });
+
+            const clearHistBtn = document.getElementById('clearHistory');
+            if (clearHistBtn) {
+                clearHistBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    localStorage.removeItem(HISTORY_KEY);
+                    renderHistory();
+                    showToast('Đã xoá lịch sử');
+                });
+            }
+        }
+
+        function escHtml(s) {
+            const d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        }
+
+        // Toggle history
+        historyToggle.addEventListener('click', () => {
+            historyToggle.classList.toggle('open');
+            historyList.classList.toggle('open');
+        });
+
+        // Init
+        renderHistory();
+    </script>
+</body>
+</html>

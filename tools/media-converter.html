@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Converter - NQNghia Tools</title>
+    <link rel="stylesheet" href="../style.css">
+    <style>
+        .format-toggle {
+            display: flex;
+            gap: 0;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+        .format-toggle button {
+            flex: 1;
+            padding: 10px 20px;
+            border: none;
+            background: var(--bg-input);
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .format-toggle button:first-child {
+            border-right: 1px solid var(--border);
+        }
+        .format-toggle button:hover {
+            color: var(--text);
+        }
+        .format-toggle button.active {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .section-panel { display: none; }
+        .section-panel.active { display: block; }
+
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 48px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.25s, background 0.25s;
+            background: var(--bg-input);
+            margin-bottom: 20px;
+        }
+        .drop-zone:hover,
+        .drop-zone.drag-over {
+            border-color: var(--accent);
+            background: rgba(108, 92, 231, 0.08);
+        }
+        .drop-zone-icon {
+            font-size: 2.8rem;
+            margin-bottom: 12px;
+            display: block;
+        }
+        .drop-zone-text {
+            color: var(--text-dim);
+            font-size: 0.95rem;
+        }
+        .drop-zone-text strong {
+            color: var(--accent);
+        }
+        .drop-zone input[type="file"] {
+            display: none;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
+            margin-bottom: 16px;
+        }
+        .file-info-icon {
+            font-size: 1.6rem;
+            flex-shrink: 0;
+        }
+        .file-info-details {
+            flex: 1;
+            min-width: 0;
+        }
+        .file-info-name {
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .file-info-meta {
+            font-size: 0.82rem;
+            color: var(--text-dim);
+        }
+        .file-info .btn-remove {
+            background: none;
+            border: none;
+            color: var(--error);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: background 0.2s;
+        }
+        .file-info .btn-remove:hover {
+            background: rgba(255, 107, 107, 0.12);
+        }
+
+        .preview-area {
+            margin: 16px 0;
+            text-align: center;
+        }
+        .preview-area img {
+            max-width: 100%;
+            max-height: 360px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+        }
+
+        .section-label {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            font-weight: 500;
+            margin-bottom: 12px;
+        }
+
+        /* Format card grid */
+        .format-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .format-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-left: 4px solid #4caf50;
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .format-card:hover {
+            border-color: var(--accent);
+            border-left-color: var(--accent);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(108, 92, 231, 0.15);
+        }
+        .format-card.selected {
+            border-color: var(--accent);
+            border-left-color: var(--accent);
+            background: rgba(108, 92, 231, 0.1);
+            box-shadow: 0 0 0 1px var(--accent);
+        }
+        .format-card-name {
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 4px;
+            color: var(--text);
+        }
+        .format-card-desc {
+            font-size: 0.78rem;
+            color: var(--text-dim);
+            line-height: 1.4;
+        }
+
+        /* Video format selector */
+        .video-format-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .video-format-btn {
+            padding: 8px 20px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-input);
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .video-format-btn:hover:not(.active) {
+            border-color: var(--accent);
+            color: var(--text);
+        }
+        .video-format-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .btn-convert {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: var(--radius-sm);
+            background: var(--accent);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, opacity 0.2s;
+        }
+        .btn-convert:hover:not(:disabled) {
+            background: var(--accent-hover);
+        }
+        .btn-convert:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .progress-section {
+            margin-top: 20px;
+        }
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.88rem;
+        }
+        .progress-status {
+            color: var(--text-dim);
+        }
+        .progress-percent {
+            color: var(--accent);
+            font-weight: 600;
+        }
+        .progress-bar-track {
+            height: 8px;
+            background: var(--bg-input);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--success));
+            border-radius: 4px;
+            transition: width 0.3s;
+            width: 0%;
+        }
+
+        .result-section {
+            margin-top: 20px;
+            padding: 16px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+        }
+        .result-section h3 {
+            font-size: 0.95rem;
+            margin-bottom: 10px;
+            color: var(--success);
+        }
+        .result-stats {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            margin-bottom: 14px;
+        }
+        .result-stats span strong {
+            color: var(--text);
+        }
+        .btn-save {
+            padding: 10px 24px;
+            border: none;
+            border-radius: var(--radius-sm);
+            background: var(--success);
+            color: #fff;
+            font-size: 0.92rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .btn-save:hover {
+            opacity: 0.85;
+        }
+
+        .error-msg {
+            margin-top: 12px;
+            padding: 12px 16px;
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid var(--error);
+            border-radius: var(--radius-sm);
+            color: var(--error);
+            font-size: 0.88rem;
+        }
+
+        .hidden { display: none !important; }
+
+        @media (max-width: 600px) {
+            .format-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (max-width: 380px) {
+            .format-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-nav">&larr; Quay lại</a>
+
+        <header>
+            <h1>Media Converter</h1>
+            <p class="subtitle">Chuyển đổi định dạng ảnh và video nhanh chóng</p>
+        </header>
+
+        <!-- Section toggle -->
+        <div class="format-toggle">
+            <button class="active" id="toggleImage" onclick="switchSection('image')">&#128444;&#65039; Ảnh</button>
+            <button id="toggleVideo" onclick="switchSection('video')">&#127909; Video</button>
+        </div>
+
+        <!-- ==================== IMAGE SECTION ==================== -->
+        <div class="section-panel active" id="sectionImage">
+            <div class="download-card">
+                <!-- Drop zone -->
+                <div class="drop-zone" id="imgDropZone">
+                    <span class="drop-zone-icon">&#128193;</span>
+                    <p class="drop-zone-text">Kéo thả tệp ảnh vào đây hoặc <strong>nhấp để chọn</strong></p>
+                    <p class="drop-zone-text" style="font-size:0.8rem; margin-top:6px;">
+                        Hỗ trợ mọi định dạng ảnh phổ biến
+                    </p>
+                    <input type="file" id="imgFileInput" accept="image/*">
+                </div>
+
+                <!-- File info -->
+                <div class="file-info hidden" id="imgFileInfo">
+                    <span class="file-info-icon">&#128444;</span>
+                    <div class="file-info-details">
+                        <div class="file-info-name" id="imgFileName"></div>
+                        <div class="file-info-meta" id="imgFileMeta"></div>
+                    </div>
+                    <button class="btn-remove" id="imgBtnRemove" title="Xóa tệp">&times;</button>
+                </div>
+
+                <!-- Preview -->
+                <div class="preview-area hidden" id="imgPreviewArea">
+                    <img id="imgPreviewImg" alt="Xem trước">
+                </div>
+
+                <!-- Output format grid -->
+                <div class="hidden" id="imgFormatSection">
+                    <p class="section-label">Chọn định dạng đầu ra:</p>
+                    <div class="format-grid" id="imgFormatGrid"></div>
+                </div>
+
+                <!-- Convert button -->
+                <button class="btn-convert hidden" id="imgBtnConvert" disabled>Chuyển đổi</button>
+
+                <!-- Result -->
+                <div class="result-section hidden" id="imgResultSection">
+                    <h3>&#10003; Chuyển đổi thành công!</h3>
+                    <div class="result-stats" id="imgResultStats"></div>
+                    <button class="btn-save" id="imgBtnSave">&#128190; Lưu tệp</button>
+                </div>
+
+                <!-- Error -->
+                <div class="error-msg hidden" id="imgErrorMsg"></div>
+            </div>
+        </div>
+
+        <!-- ==================== VIDEO SECTION ==================== -->
+        <div class="section-panel" id="sectionVideo">
+            <div class="download-card">
+                <!-- Drop zone -->
+                <div class="drop-zone" id="vidDropZone">
+                    <span class="drop-zone-icon">&#127909;</span>
+                    <p class="drop-zone-text">Kéo thả tệp video vào đây hoặc <strong>nhấp để chọn</strong></p>
+                    <p class="drop-zone-text" style="font-size:0.8rem; margin-top:6px;">
+                        MP4, MKV, WEBM, AVI, MOV...
+                    </p>
+                    <input type="file" id="vidFileInput" accept="video/*,.mkv,.avi,.mov,.webm">
+                </div>
+
+                <!-- File info -->
+                <div class="file-info hidden" id="vidFileInfo">
+                    <span class="file-info-icon">&#127909;</span>
+                    <div class="file-info-details">
+                        <div class="file-info-name" id="vidFileName"></div>
+                        <div class="file-info-meta" id="vidFileMeta"></div>
+                    </div>
+                    <button class="btn-remove" id="vidBtnRemove" title="Xóa tệp">&times;</button>
+                </div>
+
+                <!-- Output format selector -->
+                <div class="hidden" id="vidFormatSection">
+                    <p class="section-label">Chọn định dạng đầu ra:</p>
+                    <div class="video-format-row" id="vidFormatRow"></div>
+                </div>
+
+                <!-- Convert button -->
+                <button class="btn-convert hidden" id="vidBtnConvert" disabled>Chuyển đổi</button>
+
+                <!-- Progress -->
+                <div class="progress-section hidden" id="vidProgressSection">
+                    <div class="progress-header">
+                        <span class="progress-status" id="vidProgressStatus">Đang chuyển đổi...</span>
+                        <span class="progress-percent" id="vidProgressPercent">0%</span>
+                    </div>
+                    <div class="progress-bar-track">
+                        <div class="progress-bar-fill" id="vidProgressFill"></div>
+                    </div>
+                </div>
+
+                <!-- Result -->
+                <div class="result-section hidden" id="vidResultSection">
+                    <h3>&#10003; Chuyển đổi thành công!</h3>
+                    <div class="result-stats" id="vidResultStats"></div>
+                    <button class="btn-save" id="vidBtnSave">&#128190; Lưu tệp</button>
+                </div>
+
+                <!-- Error -->
+                <div class="error-msg hidden" id="vidErrorMsg"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (() => {
+        const API_IMAGE = '/api/image-convert';
+        const API_VIDEO = '/api/convert';
+
+        // ============================
+        // Image format definitions
+        // ============================
+        const IMAGE_FORMATS = [
+            { id: 'bmp',  name: 'BMP',  desc: 'Ảnh bitmap không nén' },
+            { id: 'eps',  name: 'EPS',  desc: 'Đồ họa vector PostScript' },
+            { id: 'gif',  name: 'GIF',  desc: 'Ảnh động, nền trong suốt' },
+            { id: 'ico',  name: 'ICO',  desc: 'Biểu tượng cho Windows' },
+            { id: 'jpg',  name: 'JPG',  desc: 'Ảnh nén phổ biến nhất' },
+            { id: 'png',  name: 'PNG',  desc: 'Ảnh nén không mất dữ liệu' },
+            { id: 'svg',  name: 'SVG',  desc: 'Đồ họa vector co giãn' },
+            { id: 'tga',  name: 'TGA',  desc: 'Ảnh đồ họa Targa' },
+            { id: 'tiff', name: 'TIFF', desc: 'Ảnh chất lượng cao, in ấn' },
+            { id: 'wbmp', name: 'WBMP', desc: 'Ảnh đen trắng cho di động' },
+            { id: 'webp', name: 'WebP', desc: 'Định dạng ảnh web hiện đại' },
+        ];
+
+        // Formats that can be converted client-side via Canvas
+        const CLIENT_FORMATS = new Set(['jpg', 'png', 'webp', 'bmp', 'gif']);
+        const CLIENT_MIME = {
+            png: 'image/png',
+            jpg: 'image/jpeg',
+            webp: 'image/webp',
+            bmp: 'image/bmp',
+            gif: 'image/gif',
+        };
+
+        const VIDEO_FORMATS = ['MP4', 'MKV', 'WEBM', 'AVI'];
+
+        const FILE_EXT_MAP = {
+            bmp: '.bmp', eps: '.eps', gif: '.gif', ico: '.ico', jpg: '.jpg',
+            png: '.png', svg: '.svg', tga: '.tga', tiff: '.tiff', wbmp: '.wbmp',
+            webp: '.webp', mp4: '.mp4', mkv: '.mkv', webm: '.webm', avi: '.avi',
+        };
+
+        const MIME_MAP = {
+            bmp: 'image/bmp', eps: 'application/postscript', gif: 'image/gif',
+            ico: 'image/x-icon', jpg: 'image/jpeg', png: 'image/png',
+            svg: 'image/svg+xml', tga: 'image/x-targa', tiff: 'image/tiff',
+            wbmp: 'image/vnd.wap.wbmp', webp: 'image/webp',
+            mp4: 'video/mp4', mkv: 'video/x-matroska', webm: 'video/webm', avi: 'video/x-msvideo',
+        };
+
+        // Helpers
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / 1048576).toFixed(2) + ' MB';
+        }
+        function getExt(name) { return name.split('.').pop().toLowerCase(); }
+        function show(el) { el.classList.remove('hidden'); }
+        function hide(el) { el.classList.add('hidden'); }
+
+        // ============================
+        // Section toggle
+        // ============================
+        window.switchSection = function(section) {
+            document.getElementById('sectionImage').classList.toggle('active', section === 'image');
+            document.getElementById('sectionVideo').classList.toggle('active', section === 'video');
+            document.getElementById('toggleImage').classList.toggle('active', section === 'image');
+            document.getElementById('toggleVideo').classList.toggle('active', section === 'video');
+        };
+
+        // ============================
+        // IMAGE SECTION
+        // ============================
+        const imgDropZone = document.getElementById('imgDropZone');
+        const imgFileInput = document.getElementById('imgFileInput');
+        const imgFileInfo = document.getElementById('imgFileInfo');
+        const imgFileName = document.getElementById('imgFileName');
+        const imgFileMeta = document.getElementById('imgFileMeta');
+        const imgBtnRemove = document.getElementById('imgBtnRemove');
+        const imgPreviewArea = document.getElementById('imgPreviewArea');
+        const imgPreviewImg = document.getElementById('imgPreviewImg');
+        const imgFormatSection = document.getElementById('imgFormatSection');
+        const imgFormatGrid = document.getElementById('imgFormatGrid');
+        const imgBtnConvert = document.getElementById('imgBtnConvert');
+        const imgResultSection = document.getElementById('imgResultSection');
+        const imgResultStats = document.getElementById('imgResultStats');
+        const imgBtnSave = document.getElementById('imgBtnSave');
+        const imgErrorMsg = document.getElementById('imgErrorMsg');
+
+        let imgFile = null;
+        let imgSelectedFormat = null;
+        let imgConvertedBlob = null;
+        let imgConvertedName = null;
+
+        // Build format cards
+        IMAGE_FORMATS.forEach(fmt => {
+            const card = document.createElement('div');
+            card.className = 'format-card';
+            card.dataset.format = fmt.id;
+            card.innerHTML = `<div class="format-card-name">${fmt.name}</div><div class="format-card-desc">${fmt.desc}</div>`;
+            card.addEventListener('click', () => {
+                imgFormatGrid.querySelectorAll('.format-card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                imgSelectedFormat = fmt.id;
+                imgBtnConvert.disabled = false;
+            });
+            imgFormatGrid.appendChild(card);
+        });
+
+        function imgReset() {
+            imgFile = null;
+            imgSelectedFormat = null;
+            imgConvertedBlob = null;
+            imgConvertedName = null;
+            hide(imgFileInfo);
+            hide(imgPreviewArea);
+            hide(imgFormatSection);
+            hide(imgBtnConvert);
+            hide(imgResultSection);
+            hide(imgErrorMsg);
+            show(imgDropZone);
+            imgBtnConvert.disabled = true;
+            imgBtnConvert.textContent = 'Chuy\u1EC3n \u0111\u1ED5i';
+            imgFormatGrid.querySelectorAll('.format-card').forEach(c => c.classList.remove('selected'));
+            imgFileInput.value = '';
+        }
+
+        function imgShowError(msg) {
+            imgErrorMsg.textContent = msg;
+            show(imgErrorMsg);
+        }
+
+        function handleImageFile(file) {
+            imgReset();
+            if (!file.type.startsWith('image/') && !/\.(bmp|gif|ico|jpg|jpeg|png|svg|tga|tiff|tif|webp|eps|wbmp)$/i.test(file.name)) {
+                imgShowError('Tệp được chọn không phải là ảnh hợp lệ.');
+                return;
+            }
+            imgFile = file;
+            hide(imgDropZone);
+            show(imgFileInfo);
+            imgFileName.textContent = file.name;
+            imgFileMeta.textContent = `${formatSize(file.size)} \u2022 ${getExt(file.name).toUpperCase()}`;
+
+            // Preview
+            const url = URL.createObjectURL(file);
+            imgPreviewImg.onload = () => URL.revokeObjectURL(url);
+            imgPreviewImg.src = url;
+            show(imgPreviewArea);
+            show(imgFormatSection);
+            show(imgBtnConvert);
+        }
+
+        // Drag & drop + click
+        imgDropZone.addEventListener('click', () => imgFileInput.click());
+        imgFileInput.addEventListener('change', () => {
+            if (imgFileInput.files.length) handleImageFile(imgFileInput.files[0]);
+        });
+        imgDropZone.addEventListener('dragover', e => { e.preventDefault(); imgDropZone.classList.add('drag-over'); });
+        imgDropZone.addEventListener('dragleave', () => imgDropZone.classList.remove('drag-over'));
+        imgDropZone.addEventListener('drop', e => {
+            e.preventDefault();
+            imgDropZone.classList.remove('drag-over');
+            if (e.dataTransfer.files.length) handleImageFile(e.dataTransfer.files[0]);
+        });
+        imgBtnRemove.addEventListener('click', imgReset);
+
+        // Convert image
+        imgBtnConvert.addEventListener('click', async () => {
+            if (!imgFile || !imgSelectedFormat) return;
+            hide(imgErrorMsg);
+            hide(imgResultSection);
+            imgBtnConvert.disabled = true;
+            imgBtnConvert.textContent = '\u0110ang x\u1EED l\u00FD...';
+
+            try {
+                if (CLIENT_FORMATS.has(imgSelectedFormat)) {
+                    await convertImageClient();
+                } else {
+                    await convertImageServer();
+                }
+            } catch (err) {
+                imgShowError(err.message || 'Có lỗi xảy ra khi chuyển đổi.');
+            } finally {
+                imgBtnConvert.disabled = false;
+                imgBtnConvert.textContent = 'Chuy\u1EC3n \u0111\u1ED5i';
+            }
+        });
+
+        function convertImageClient() {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.naturalWidth;
+                        canvas.height = img.naturalHeight;
+                        const ctx = canvas.getContext('2d');
+                        // Fill white background for JPG (no alpha)
+                        if (imgSelectedFormat === 'jpg' || imgSelectedFormat === 'bmp') {
+                            ctx.fillStyle = '#ffffff';
+                            ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        }
+                        ctx.drawImage(img, 0, 0);
+                        const mime = CLIENT_MIME[imgSelectedFormat];
+                        const quality = (imgSelectedFormat === 'png' || imgSelectedFormat === 'gif' || imgSelectedFormat === 'bmp') ? undefined : 0.92;
+                        canvas.toBlob(blob => {
+                            if (!blob) { reject(new Error('Không thể chuyển đổi ảnh.')); return; }
+                            const baseName = imgFile.name.replace(/\.[^.]+$/, '');
+                            imgConvertedBlob = blob;
+                            imgConvertedName = baseName + FILE_EXT_MAP[imgSelectedFormat];
+                            imgShowResult(imgFile.size, blob.size);
+                            resolve();
+                        }, mime, quality);
+                    } catch (e) { reject(e); }
+                };
+                img.onerror = () => reject(new Error('Không thể đọc tệp ảnh.'));
+                img.src = URL.createObjectURL(imgFile);
+            });
+        }
+
+        async function convertImageServer() {
+            const form = new FormData();
+            form.append('file', imgFile);
+            form.append('output_format', imgSelectedFormat);
+
+            const res = await fetch(API_IMAGE, { method: 'POST', body: form });
+            if (!res.ok) {
+                const data = await res.json().catch(() => null);
+                throw new Error(data?.detail || `Lỗi server (${res.status})`);
+            }
+            const blob = await res.blob();
+            const baseName = imgFile.name.replace(/\.[^.]+$/, '');
+            imgConvertedBlob = blob;
+            imgConvertedName = baseName + FILE_EXT_MAP[imgSelectedFormat];
+            imgShowResult(imgFile.size, blob.size);
+        }
+
+        function imgShowResult(originalSize, newSize) {
+            const diff = newSize - originalSize;
+            const pct = ((diff / originalSize) * 100).toFixed(1);
+            const sign = diff > 0 ? '+' : '';
+            imgResultStats.innerHTML =
+                `<span>Gốc: <strong>${formatSize(originalSize)}</strong></span>` +
+                `<span>Sau: <strong>${formatSize(newSize)}</strong></span>` +
+                `<span>Thay đổi: <strong>${sign}${pct}%</strong></span>`;
+            show(imgResultSection);
+        }
+
+        imgBtnSave.addEventListener('click', () => saveFile(imgConvertedBlob, imgConvertedName));
+
+        // ============================
+        // VIDEO SECTION
+        // ============================
+        const vidDropZone = document.getElementById('vidDropZone');
+        const vidFileInput = document.getElementById('vidFileInput');
+        const vidFileInfo = document.getElementById('vidFileInfo');
+        const vidFileName = document.getElementById('vidFileName');
+        const vidFileMeta = document.getElementById('vidFileMeta');
+        const vidBtnRemove = document.getElementById('vidBtnRemove');
+        const vidFormatSection = document.getElementById('vidFormatSection');
+        const vidFormatRow = document.getElementById('vidFormatRow');
+        const vidBtnConvert = document.getElementById('vidBtnConvert');
+        const vidProgressSection = document.getElementById('vidProgressSection');
+        const vidProgressStatus = document.getElementById('vidProgressStatus');
+        const vidProgressPercent = document.getElementById('vidProgressPercent');
+        const vidProgressFill = document.getElementById('vidProgressFill');
+        const vidResultSection = document.getElementById('vidResultSection');
+        const vidResultStats = document.getElementById('vidResultStats');
+        const vidBtnSave = document.getElementById('vidBtnSave');
+        const vidErrorMsg = document.getElementById('vidErrorMsg');
+
+        let vidFile = null;
+        let vidSelectedFormat = null;
+        let vidConvertedBlob = null;
+        let vidConvertedName = null;
+        let vidPollTimer = null;
+
+        // Build video format buttons
+        VIDEO_FORMATS.forEach((fmt, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'video-format-btn';
+            btn.textContent = fmt;
+            btn.dataset.format = fmt.toLowerCase();
+            if (i === 0) { btn.classList.add('active'); vidSelectedFormat = fmt.toLowerCase(); }
+            btn.addEventListener('click', () => {
+                vidFormatRow.querySelectorAll('.video-format-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                vidSelectedFormat = fmt.toLowerCase();
+            });
+            vidFormatRow.appendChild(btn);
+        });
+
+        function vidReset() {
+            vidFile = null;
+            vidConvertedBlob = null;
+            vidConvertedName = null;
+            if (vidPollTimer) { clearInterval(vidPollTimer); vidPollTimer = null; }
+            hide(vidFileInfo);
+            hide(vidFormatSection);
+            hide(vidBtnConvert);
+            hide(vidProgressSection);
+            hide(vidResultSection);
+            hide(vidErrorMsg);
+            show(vidDropZone);
+            vidBtnConvert.disabled = false;
+            vidBtnConvert.textContent = 'Chuy\u1EC3n \u0111\u1ED5i';
+            vidProgressFill.style.width = '0%';
+            vidProgressPercent.textContent = '0%';
+            vidFileInput.value = '';
+            // Reset format selection to first
+            vidFormatRow.querySelectorAll('.video-format-btn').forEach((b, i) => {
+                b.classList.toggle('active', i === 0);
+            });
+            vidSelectedFormat = VIDEO_FORMATS[0].toLowerCase();
+        }
+
+        function vidShowError(msg) {
+            vidErrorMsg.textContent = msg;
+            show(vidErrorMsg);
+        }
+
+        function handleVideoFile(file) {
+            vidReset();
+            if (!file.type.startsWith('video/') && !/\.(mp4|mkv|webm|avi|mov|flv|wmv)$/i.test(file.name)) {
+                vidShowError('Tệp được chọn không phải là video hợp lệ.');
+                return;
+            }
+            vidFile = file;
+            hide(vidDropZone);
+            show(vidFileInfo);
+            vidFileName.textContent = file.name;
+            vidFileMeta.textContent = `${formatSize(file.size)} \u2022 ${getExt(file.name).toUpperCase()}`;
+            show(vidFormatSection);
+            show(vidBtnConvert);
+        }
+
+        // Drag & drop + click
+        vidDropZone.addEventListener('click', () => vidFileInput.click());
+        vidFileInput.addEventListener('change', () => {
+            if (vidFileInput.files.length) handleVideoFile(vidFileInput.files[0]);
+        });
+        vidDropZone.addEventListener('dragover', e => { e.preventDefault(); vidDropZone.classList.add('drag-over'); });
+        vidDropZone.addEventListener('dragleave', () => vidDropZone.classList.remove('drag-over'));
+        vidDropZone.addEventListener('drop', e => {
+            e.preventDefault();
+            vidDropZone.classList.remove('drag-over');
+            if (e.dataTransfer.files.length) handleVideoFile(e.dataTransfer.files[0]);
+        });
+        vidBtnRemove.addEventListener('click', vidReset);
+
+        // Convert video
+        vidBtnConvert.addEventListener('click', async () => {
+            if (!vidFile || !vidSelectedFormat) return;
+            hide(vidErrorMsg);
+            hide(vidResultSection);
+            vidBtnConvert.disabled = true;
+            vidBtnConvert.textContent = '\u0110ang x\u1EED l\u00FD...';
+
+            try {
+                await convertVideo();
+            } catch (err) {
+                vidShowError(err.message || 'Có lỗi xảy ra khi chuyển đổi.');
+            } finally {
+                vidBtnConvert.disabled = false;
+                vidBtnConvert.textContent = 'Chuy\u1EC3n \u0111\u1ED5i';
+            }
+        });
+
+        async function convertVideo() {
+            show(vidProgressSection);
+            vidProgressStatus.textContent = '\u0110ang t\u1EA3i l\u00EAn...';
+            vidProgressFill.style.width = '0%';
+            vidProgressPercent.textContent = '0%';
+
+            const form = new FormData();
+            form.append('file', vidFile);
+            form.append('output_format', vidSelectedFormat);
+
+            const res = await fetch(API_VIDEO, { method: 'POST', body: form });
+            if (!res.ok) {
+                hide(vidProgressSection);
+                const data = await res.json().catch(() => null);
+                throw new Error(data?.detail || `Lỗi server (${res.status})`);
+            }
+            const { task_id } = await res.json();
+
+            return new Promise((resolve, reject) => {
+                vidProgressStatus.textContent = '\u0110ang chuy\u1EC3n \u0111\u1ED5i...';
+                vidPollTimer = setInterval(async () => {
+                    try {
+                        const pRes = await fetch(`${API_VIDEO}/progress?task_id=${task_id}`);
+                        if (!pRes.ok) return;
+                        const pData = await pRes.json();
+                        const pct = Math.min(Math.round(pData.progress || 0), 100);
+                        vidProgressFill.style.width = pct + '%';
+                        vidProgressPercent.textContent = pct + '%';
+
+                        if (pData.status === 'done' || pData.progress >= 100) {
+                            clearInterval(vidPollTimer); vidPollTimer = null;
+                            vidProgressStatus.textContent = '\u0110ang t\u1EA3i xu\u1ED1ng...';
+                            const fileRes = await fetch(`${API_VIDEO}/file?id=${pData.file_id || task_id}`);
+                            if (!fileRes.ok) throw new Error('Không thể tải tệp kết quả.');
+                            const blob = await fileRes.blob();
+                            const baseName = vidFile.name.replace(/\.[^.]+$/, '');
+                            vidConvertedBlob = blob;
+                            vidConvertedName = baseName + FILE_EXT_MAP[vidSelectedFormat];
+                            hide(vidProgressSection);
+                            vidShowResult(vidFile.size, blob.size);
+                            resolve();
+                        } else if (pData.status === 'error') {
+                            clearInterval(vidPollTimer); vidPollTimer = null;
+                            hide(vidProgressSection);
+                            reject(new Error(pData.message || 'Chuyển đổi thất bại.'));
+                        }
+                    } catch (e) {
+                        clearInterval(vidPollTimer); vidPollTimer = null;
+                        hide(vidProgressSection);
+                        reject(e);
+                    }
+                }, 1000);
+            });
+        }
+
+        function vidShowResult(originalSize, newSize) {
+            const diff = newSize - originalSize;
+            const pct = ((diff / originalSize) * 100).toFixed(1);
+            const sign = diff > 0 ? '+' : '';
+            vidResultStats.innerHTML =
+                `<span>Gốc: <strong>${formatSize(originalSize)}</strong></span>` +
+                `<span>Sau: <strong>${formatSize(newSize)}</strong></span>` +
+                `<span>Thay đổi: <strong>${sign}${pct}%</strong></span>`;
+            show(vidResultSection);
+        }
+
+        vidBtnSave.addEventListener('click', () => saveFile(vidConvertedBlob, vidConvertedName));
+
+        // ============================
+        // Shared save file function
+        // ============================
+        async function saveFile(blob, name) {
+            if (!blob || !name) return;
+            const ext = name.split('.').pop().toLowerCase();
+            try {
+                if (window.showSaveFilePicker) {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: name,
+                        types: [{
+                            description: ext.toUpperCase() + ' file',
+                            accept: { [MIME_MAP[ext] || 'application/octet-stream']: ['.' + ext] }
+                        }]
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(blob);
+                    await writable.close();
+                    return;
+                }
+            } catch (e) {
+                if (e.name === 'AbortError') return;
+            }
+            // Fallback
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = name;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 100);
+        }
+    })();
+    </script>
+</body>
+</html>

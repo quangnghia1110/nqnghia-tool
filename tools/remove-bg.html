@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xoá Nền Ảnh - NQNghia Tools</title>
+    <link rel="stylesheet" href="../style.css">
+    <style>
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 48px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--bg-input);
+            margin-bottom: 20px;
+        }
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: var(--accent);
+            background: rgba(108, 92, 231, 0.06);
+        }
+
+        .drop-zone-icon {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .drop-zone-text {
+            color: var(--text-dim);
+            font-size: 0.95rem;
+        }
+
+        .drop-zone-text strong {
+            color: var(--accent);
+        }
+
+        .preview-img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: var(--radius-sm);
+            object-fit: contain;
+        }
+
+        .preview-section {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 12px 28px;
+            border-radius: var(--radius-sm);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-weight: 600;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 12px 28px;
+            border-radius: var(--radius-sm);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: #fff;
+            border: none;
+            padding: 12px 28px;
+            border-radius: var(--radius-sm);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-weight: 600;
+        }
+
+        .btn-success:hover {
+            background: #00c282;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+
+        /* Progress bar */
+        .progress-container {
+            margin: 24px 0;
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-input);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .progress-text {
+            text-align: center;
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            margin-top: 8px;
+        }
+
+        /* Comparison slider */
+        .comparison-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 700px;
+            margin: 0 auto 20px;
+            overflow: hidden;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        .comparison-wrapper img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .comparison-layer-original {
+            position: relative;
+            width: 100%;
+        }
+
+        .comparison-layer-result {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .comparison-layer-result img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: fill;
+        }
+
+        .checkerboard {
+            background-image: linear-gradient(45deg, #2a2a3a 25%, transparent 25%),
+                linear-gradient(-45deg, #2a2a3a 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #2a2a3a 75%),
+                linear-gradient(-45deg, transparent 75%, #2a2a3a 75%);
+            background-size: 16px 16px;
+            background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+            background-color: #1a1a24;
+        }
+
+        .comparison-divider {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: #fff;
+            left: 50%;
+            transform: translateX(-50%);
+            cursor: ew-resize;
+            z-index: 10;
+        }
+
+        .comparison-divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 36px;
+            height: 36px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+        }
+
+        .comparison-divider::before {
+            content: '\2194';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 18px;
+            color: var(--bg);
+            z-index: 1;
+            font-weight: bold;
+        }
+
+        .comparison-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            color: var(--text-dim);
+        }
+
+        /* File info */
+        .file-info {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin: 16px 0;
+            font-size: 0.9rem;
+            color: var(--text-dim);
+        }
+
+        .file-info-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .file-info-item .label {
+            color: var(--text-dim);
+        }
+
+        .file-info-item .value {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .size-saved {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .error-msg {
+            color: var(--error);
+            text-align: center;
+            margin: 16px 0;
+            font-size: 0.95rem;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-nav">&larr; Quay lại</a>
+        <div class="download-card">
+            <h1>🖼️ Xoá Nền Ảnh</h1>
+            <p style="color: var(--text-dim); margin-bottom: 24px;">Tự động xoá phông nền khỏi ảnh, giữ lại chủ thể chính với nền trong suốt.</p>
+
+            <!-- Upload zone -->
+            <div id="uploadSection">
+                <div class="drop-zone" id="dropZone">
+                    <span class="drop-zone-icon">📁</span>
+                    <p class="drop-zone-text">Kéo thả ảnh vào đây hoặc <strong>nhấn để chọn</strong></p>
+                    <p class="drop-zone-text" style="font-size: 0.8rem; margin-top: 8px;">Hỗ trợ: JPG, PNG, WEBP, BMP...</p>
+                </div>
+                <input type="file" id="fileInput" accept="image/*" style="display: none;">
+            </div>
+
+            <!-- Preview section -->
+            <div id="previewSection" class="hidden">
+                <div class="preview-section">
+                    <img id="previewImg" class="preview-img" alt="Ảnh xem trước">
+                </div>
+                <div id="originalInfo" class="file-info">
+                    <div class="file-info-item">
+                        <span class="label">Tên tệp:</span>
+                        <span class="value" id="fileName">-</span>
+                    </div>
+                    <div class="file-info-item">
+                        <span class="label">Kích thước:</span>
+                        <span class="value" id="fileSize">-</span>
+                    </div>
+                </div>
+                <div class="actions">
+                    <button class="btn-primary" id="removeBgBtn">✨ Xoá nền</button>
+                </div>
+            </div>
+
+            <!-- Progress section -->
+            <div id="progressSection" class="hidden">
+                <div class="progress-container">
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" id="progressFill"></div>
+                    </div>
+                    <p class="progress-text" id="progressText">Đang xử lý... 0%</p>
+                </div>
+            </div>
+
+            <!-- Error section -->
+            <div id="errorSection" class="hidden">
+                <p class="error-msg" id="errorMsg"></p>
+                <div class="actions">
+                    <button class="btn-secondary" id="retryBtn">🔄 Thử lại</button>
+                </div>
+            </div>
+
+            <!-- Result section -->
+            <div id="resultSection" class="hidden">
+                <div class="comparison-labels">
+                    <span>Ảnh gốc</span>
+                    <span>Đã xoá nền</span>
+                </div>
+                <div class="comparison-wrapper" id="comparisonWrapper">
+                    <div class="comparison-layer-original">
+                        <img id="compOriginal" alt="Ảnh gốc">
+                    </div>
+                    <div class="comparison-layer-result checkerboard" id="resultLayer" style="clip-path: inset(0 0 0 50%);">
+                        <img id="compResult" alt="Ảnh đã xoá nền">
+                    </div>
+                    <div class="comparison-divider" id="divider"></div>
+                </div>
+
+                <div class="file-info">
+                    <div class="file-info-item">
+                        <span class="label">Trước:</span>
+                        <span class="value" id="sizeBefore">-</span>
+                    </div>
+                    <div class="file-info-item">
+                        <span class="label">Sau:</span>
+                        <span class="value" id="sizeAfter">-</span>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button class="btn-success" id="downloadBtn">⬇️ Tải xuống PNG</button>
+                    <button class="btn-secondary" id="resetBtn">🔄 Thử ảnh khác</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const uploadSection = document.getElementById('uploadSection');
+        const previewSection = document.getElementById('previewSection');
+        const progressSection = document.getElementById('progressSection');
+        const errorSection = document.getElementById('errorSection');
+        const resultSection = document.getElementById('resultSection');
+        const previewImg = document.getElementById('previewImg');
+        const removeBgBtn = document.getElementById('removeBgBtn');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const retryBtn = document.getElementById('retryBtn');
+
+        let selectedFile = null;
+        let resultBlobUrl = null;
+        let resultBlob = null;
+        let resultFileName = '';
+
+        // Utility: format file size
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        // Show/hide sections
+        function showSection(section) {
+            [uploadSection, previewSection, progressSection, errorSection, resultSection].forEach(s => s.classList.add('hidden'));
+            section.classList.remove('hidden');
+        }
+
+        // Drag & drop
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length && files[0].type.startsWith('image/')) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length) {
+                handleFile(fileInput.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            selectedFile = file;
+            const url = URL.createObjectURL(file);
+            previewImg.src = url;
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileSize').textContent = formatSize(file.size);
+
+            showSection(previewSection);
+            previewSection.classList.remove('hidden');
+            // Also show the preview image area
+        }
+
+        // Remove background
+        removeBgBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            showSection(progressSection);
+            progressSection.classList.remove('hidden');
+            progressFill.style.width = '0%';
+            progressText.textContent = 'Đang tải lên... 0%';
+
+            try {
+                // Upload file
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+
+                const uploadRes = await fetch('/api/remove-bg', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!uploadRes.ok) {
+                    throw new Error('Tải lên thất bại. Mã lỗi: ' + uploadRes.status);
+                }
+
+                const uploadData = await uploadRes.json();
+                const taskId = uploadData.task_id;
+
+                // Poll progress
+                await pollProgress(taskId);
+            } catch (err) {
+                showError(err.message || 'Đã xảy ra lỗi không xác định.');
+            }
+        });
+
+        async function pollProgress(taskId) {
+            const poll = async () => {
+                try {
+                    const res = await fetch(`/api/remove-bg/progress?task_id=${encodeURIComponent(taskId)}`);
+                    if (!res.ok) throw new Error('Không thể kiểm tra tiến trình.');
+
+                    const data = await res.json();
+
+                    if (data.status === 'processing') {
+                        const pct = data.percent || 0;
+                        progressFill.style.width = pct + '%';
+                        progressText.textContent = `Đang xử lý... ${pct}%`;
+                        setTimeout(poll, 500);
+                    } else if (data.status === 'done') {
+                        progressFill.style.width = '100%';
+                        progressText.textContent = 'Hoàn tất!';
+
+                        // Download result file
+                        const fileUrl = `/api/remove-bg/file?id=${encodeURIComponent(data.file_id)}`;
+                        const fileRes = await fetch(fileUrl);
+                        if (!fileRes.ok) throw new Error('Không thể tải tệp kết quả.');
+
+                        resultBlob = await fileRes.blob();
+                        resultBlobUrl = URL.createObjectURL(resultBlob);
+                        resultFileName = data.file_name || selectedFile.name.replace(/\.[^.]+$/, '') + '_no_bg.png';
+
+                        showResult();
+                    } else if (data.status === 'error') {
+                        throw new Error(data.error || 'Xử lý thất bại.');
+                    }
+                } catch (err) {
+                    showError(err.message);
+                }
+            };
+
+            poll();
+        }
+
+        function showResult() {
+            showSection(resultSection);
+
+            const compOriginal = document.getElementById('compOriginal');
+            const compResult = document.getElementById('compResult');
+
+            compOriginal.src = URL.createObjectURL(selectedFile);
+            compResult.src = resultBlobUrl;
+
+            // File sizes
+            document.getElementById('sizeBefore').textContent = formatSize(selectedFile.size);
+            document.getElementById('sizeAfter').textContent = formatSize(resultBlob.size);
+
+            // Reset slider to middle
+            updateSlider(50);
+        }
+
+        function showError(msg) {
+            showSection(errorSection);
+            document.getElementById('errorMsg').textContent = msg;
+        }
+
+        // Comparison slider
+        const comparisonWrapper = document.getElementById('comparisonWrapper');
+        const divider = document.getElementById('divider');
+        const resultLayer = document.getElementById('resultLayer');
+        let isDragging = false;
+
+        function updateSlider(percent) {
+            divider.style.left = percent + '%';
+            resultLayer.style.clipPath = `inset(0 0 0 ${percent}%)`;
+        }
+
+        function getSliderPercent(e) {
+            const rect = comparisonWrapper.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            let pct = ((clientX - rect.left) / rect.width) * 100;
+            return Math.max(0, Math.min(100, pct));
+        }
+
+        comparisonWrapper.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            updateSlider(getSliderPercent(e));
+        });
+
+        comparisonWrapper.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            updateSlider(getSliderPercent(e));
+        }, { passive: true });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            updateSlider(getSliderPercent(e));
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            updateSlider(getSliderPercent(e));
+        }, { passive: true });
+
+        document.addEventListener('mouseup', () => { isDragging = false; });
+        document.addEventListener('touchend', () => { isDragging = false; });
+
+        // Download
+        downloadBtn.addEventListener('click', async () => {
+            if (!resultBlob) return;
+
+            // Try showSaveFilePicker (modern browsers)
+            if (window.showSaveFilePicker) {
+                try {
+                    const handle = await showSaveFilePicker({
+                        suggestedName: resultFileName,
+                        types: [{
+                            description: 'Ảnh PNG',
+                            accept: { 'image/png': ['.png'] }
+                        }]
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(resultBlob);
+                    await writable.close();
+                    return;
+                } catch (err) {
+                    // User cancelled or API failed, fall through to fallback
+                    if (err.name === 'AbortError') return;
+                }
+            }
+
+            // Fallback
+            const a = document.createElement('a');
+            a.href = resultBlobUrl;
+            a.download = resultFileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
+
+        // Reset
+        resetBtn.addEventListener('click', resetAll);
+        retryBtn.addEventListener('click', () => {
+            if (selectedFile) {
+                showSection(previewSection);
+            } else {
+                resetAll();
+            }
+        });
+
+        function resetAll() {
+            selectedFile = null;
+            if (resultBlobUrl) URL.revokeObjectURL(resultBlobUrl);
+            resultBlobUrl = null;
+            resultBlob = null;
+            resultFileName = '';
+            fileInput.value = '';
+            previewImg.src = '';
+            showSection(uploadSection);
+        }
+    </script>
+</body>
+</html>

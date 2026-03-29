@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiểm tra tốc độ mạng - NQNghia Tools</title>
+    <link rel="stylesheet" href="../style.css">
+    <style>
+        :root {
+            --bg: #0f0f13;
+            --bg-card: #1a1a24;
+            --bg-input: #12121a;
+            --border: #2a2a3a;
+            --text: #e4e4ed;
+            --text-dim: #8888a0;
+            --accent: #6c5ce7;
+            --accent-hover: #7f71ed;
+            --success: #00d68f;
+            --error: #ff6b6b;
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+
+        .speed-test-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 32px;
+        }
+
+        /* Gauge */
+        .gauge-container {
+            position: relative;
+            width: 320px;
+            height: 200px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .gauge-svg {
+            width: 320px;
+            height: 200px;
+        }
+
+        .gauge-bg {
+            fill: none;
+            stroke: var(--border);
+            stroke-width: 18;
+            stroke-linecap: round;
+        }
+
+        .gauge-fill {
+            fill: none;
+            stroke: url(#gaugeGradient);
+            stroke-width: 18;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.4s ease;
+        }
+
+        .gauge-needle {
+            transform-origin: 160px 170px;
+            transition: transform 0.4s ease;
+        }
+
+        .gauge-center-text {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+        }
+
+        .gauge-speed {
+            font-size: 52px;
+            font-weight: 700;
+            color: var(--text);
+            line-height: 1;
+        }
+
+        .gauge-unit {
+            font-size: 16px;
+            color: var(--text-dim);
+            margin-top: 2px;
+        }
+
+        .gauge-ticks text {
+            fill: var(--text-dim);
+            font-size: 11px;
+            text-anchor: middle;
+        }
+
+        /* Phase indicator */
+        .phase-indicator {
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .phase-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-dim);
+            font-size: 14px;
+            transition: color 0.3s;
+        }
+
+        .phase-item.active {
+            color: var(--accent);
+        }
+
+        .phase-item.done {
+            color: var(--success);
+        }
+
+        .phase-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--border);
+            transition: background 0.3s;
+        }
+
+        .phase-item.active .phase-dot {
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent);
+            animation: pulseDot 1s ease infinite;
+        }
+
+        .phase-item.done .phase-dot {
+            background: var(--success);
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* Start button */
+        .start-btn {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            border: 3px solid var(--accent);
+            background: transparent;
+            color: var(--text);
+            font-size: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .start-btn:hover:not(:disabled) {
+            background: var(--accent);
+            box-shadow: 0 0 30px rgba(108, 92, 231, 0.4);
+        }
+
+        .start-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .start-btn.testing {
+            border-color: var(--accent);
+            animation: rotateBorder 2s linear infinite;
+        }
+
+        @keyframes rotateBorder {
+            0% { box-shadow: 0 0 15px rgba(108, 92, 231, 0.3); }
+            50% { box-shadow: 0 0 25px rgba(108, 92, 231, 0.6); }
+            100% { box-shadow: 0 0 15px rgba(108, 92, 231, 0.3); }
+        }
+
+        /* Result cards */
+        .results-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .download-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            text-align: center;
+            transition: border-color 0.3s;
+        }
+
+        .download-card:hover {
+            border-color: var(--accent);
+        }
+
+        .download-card .card-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .download-card .card-label {
+            font-size: 13px;
+            color: var(--text-dim);
+            margin-bottom: 6px;
+        }
+
+        .download-card .card-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .download-card .card-unit {
+            font-size: 13px;
+            color: var(--text-dim);
+            margin-left: 2px;
+        }
+
+        /* History table */
+        .history-section {
+            width: 100%;
+            margin-top: 16px;
+        }
+
+        .history-section h3 {
+            color: var(--text);
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .history-table th {
+            background: var(--bg-input);
+            color: var(--text-dim);
+            font-weight: 600;
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .history-table th:first-child {
+            border-radius: var(--radius-sm) 0 0 0;
+        }
+
+        .history-table th:last-child {
+            border-radius: 0 var(--radius-sm) 0 0;
+        }
+
+        .history-table td {
+            padding: 10px 12px;
+            color: var(--text);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .history-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .history-table tbody tr:hover {
+            background: rgba(108, 92, 231, 0.05);
+        }
+
+        .no-history {
+            color: var(--text-dim);
+            text-align: center;
+            padding: 24px;
+            font-size: 14px;
+        }
+
+        .clear-history-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 6px 14px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .clear-history-btn:hover {
+            border-color: var(--error);
+            color: var(--error);
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .history-header h3 {
+            margin-bottom: 0;
+        }
+
+        @media (max-width: 600px) {
+            .results-row {
+                grid-template-columns: 1fr;
+            }
+
+            .gauge-container {
+                width: 260px;
+                height: 170px;
+            }
+
+            .gauge-svg {
+                width: 260px;
+                height: 170px;
+            }
+
+            .gauge-speed {
+                font-size: 40px;
+            }
+
+            .start-btn {
+                width: 150px;
+                height: 150px;
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-nav">&larr; Quay lại</a>
+        <h1>Kiểm tra tốc độ mạng</h1>
+        <p style="color: var(--text-dim); margin-bottom: 24px;">Đo tốc độ kết nối Internet của bạn bao gồm ping, tải xuống và tải lên.</p>
+
+        <div class="speed-test-wrapper">
+            <!-- Gauge -->
+            <div class="gauge-container">
+                <svg class="gauge-svg" viewBox="0 0 320 200">
+                    <defs>
+                        <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="var(--accent)" />
+                            <stop offset="50%" stop-color="var(--success)" />
+                            <stop offset="100%" stop-color="#ff6b6b" />
+                        </linearGradient>
+                    </defs>
+                    <!-- Background arc -->
+                    <path class="gauge-bg" id="gaugeBg"
+                        d="M 30 170 A 130 130 0 0 1 290 170" />
+                    <!-- Fill arc -->
+                    <path class="gauge-fill" id="gaugeFill"
+                        d="M 30 170 A 130 130 0 0 1 290 170" />
+                    <!-- Tick labels -->
+                    <g class="gauge-ticks" id="gaugeTicks"></g>
+                    <!-- Needle -->
+                    <g class="gauge-needle" id="gaugeNeedle">
+                        <line x1="160" y1="170" x2="160" y2="55" stroke="var(--text)" stroke-width="2.5" stroke-linecap="round" />
+                        <circle cx="160" cy="170" r="6" fill="var(--text)" />
+                    </g>
+                </svg>
+                <div class="gauge-center-text">
+                    <div class="gauge-speed" id="gaugeSpeed">0</div>
+                    <div class="gauge-unit">Mbps</div>
+                </div>
+            </div>
+
+            <!-- Phase indicator -->
+            <div class="phase-indicator" id="phaseIndicator">
+                <div class="phase-item" data-phase="ping">
+                    <span class="phase-dot"></span>
+                    <span>Ping</span>
+                </div>
+                <div class="phase-item" data-phase="download">
+                    <span class="phase-dot"></span>
+                    <span>Tải xuống</span>
+                </div>
+                <div class="phase-item" data-phase="upload">
+                    <span class="phase-dot"></span>
+                    <span>Tải lên</span>
+                </div>
+            </div>
+
+            <!-- Start button -->
+            <button class="start-btn" id="startBtn" onclick="startTest()">Bắt đầu đo</button>
+
+            <!-- Result cards -->
+            <div class="results-row" id="resultsRow" style="display: none;">
+                <div class="download-card">
+                    <div class="card-icon">📡</div>
+                    <div class="card-label">Ping</div>
+                    <div class="card-value"><span id="resultPing">--</span><span class="card-unit"> ms</span></div>
+                </div>
+                <div class="download-card">
+                    <div class="card-icon">⬇️</div>
+                    <div class="card-label">Tải xuống</div>
+                    <div class="card-value"><span id="resultDownload">--</span><span class="card-unit"> Mbps</span></div>
+                </div>
+                <div class="download-card">
+                    <div class="card-icon">⬆️</div>
+                    <div class="card-label">Tải lên</div>
+                    <div class="card-value"><span id="resultUpload">--</span><span class="card-unit"> Mbps</span></div>
+                </div>
+            </div>
+
+            <!-- History -->
+            <div class="history-section" id="historySection">
+                <div class="history-header">
+                    <h3>Lịch sử đo tốc độ</h3>
+                    <button class="clear-history-btn" id="clearHistoryBtn" onclick="clearHistory()">Xoá lịch sử</button>
+                </div>
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>Thời gian</th>
+                            <th>Ping (ms)</th>
+                            <th>Tải xuống (Mbps)</th>
+                            <th>Tải lên (Mbps)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody"></tbody>
+                </table>
+                <div class="no-history" id="noHistory">Chưa có kết quả nào. Nhấn "Bắt đầu đo" để kiểm tra.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Gauge config
+        const GAUGE_MAX = 200; // Mbps max on gauge
+        const ARC_LENGTH = 408.4; // approximate length of the SVG arc path
+        let currentGaugeValue = 0;
+        let animFrameId = null;
+
+        // Init gauge
+        function initGauge() {
+            const fill = document.getElementById('gaugeFill');
+            fill.style.strokeDasharray = ARC_LENGTH;
+            fill.style.strokeDashoffset = ARC_LENGTH;
+
+            // Set needle to start position (left)
+            updateNeedle(0);
+
+            // Draw tick labels
+            const ticks = document.getElementById('gaugeTicks');
+            const tickValues = [0, 50, 100, 150, 200];
+            tickValues.forEach(val => {
+                const angle = -180 + (val / GAUGE_MAX) * 180;
+                const rad = angle * Math.PI / 180;
+                const cx = 160, cy = 170, r = 155;
+                const x = cx + r * Math.cos(rad);
+                const y = cy + r * Math.sin(rad);
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', x);
+                text.setAttribute('y', y);
+                text.textContent = val;
+                ticks.appendChild(text);
+            });
+        }
+
+        function updateNeedle(value) {
+            const ratio = Math.min(value / GAUGE_MAX, 1);
+            const angle = -180 + ratio * 180;
+            const needle = document.getElementById('gaugeNeedle');
+            needle.style.transform = `rotate(${angle + 180}deg)`;
+        }
+
+        function setGauge(value) {
+            const ratio = Math.min(value / GAUGE_MAX, 1);
+            const fill = document.getElementById('gaugeFill');
+            fill.style.strokeDashoffset = ARC_LENGTH * (1 - ratio);
+            updateNeedle(value);
+            document.getElementById('gaugeSpeed').textContent = value < 10 ? value.toFixed(1) : Math.round(value);
+        }
+
+        function animateGaugeTo(target, duration = 400) {
+            const start = currentGaugeValue;
+            const startTime = performance.now();
+            if (animFrameId) cancelAnimationFrame(animFrameId);
+
+            function step(now) {
+                const elapsed = now - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3);
+                const current = start + (target - start) * eased;
+                setGauge(current);
+                currentGaugeValue = current;
+                if (progress < 1) {
+                    animFrameId = requestAnimationFrame(step);
+                }
+            }
+            animFrameId = requestAnimationFrame(step);
+        }
+
+        // Phase management
+        function setPhase(phase) {
+            document.querySelectorAll('.phase-item').forEach(el => {
+                el.classList.remove('active', 'done');
+            });
+            const phases = ['ping', 'download', 'upload'];
+            const idx = phases.indexOf(phase);
+            phases.forEach((p, i) => {
+                const el = document.querySelector(`.phase-item[data-phase="${p}"]`);
+                if (i < idx) el.classList.add('done');
+                else if (i === idx) el.classList.add('active');
+            });
+        }
+
+        function setAllPhasesDone() {
+            document.querySelectorAll('.phase-item').forEach(el => {
+                el.classList.remove('active');
+                el.classList.add('done');
+            });
+        }
+
+        function resetPhases() {
+            document.querySelectorAll('.phase-item').forEach(el => {
+                el.classList.remove('active', 'done');
+            });
+        }
+
+        // Test functions
+        async function measurePing() {
+            const attempts = 5;
+            const pings = [];
+            for (let i = 0; i < attempts; i++) {
+                const start = performance.now();
+                try {
+                    await fetch('https://speed.cloudflare.com/__down?bytes=1', {
+                        cache: 'no-store',
+                        mode: 'cors'
+                    });
+                    const end = performance.now();
+                    pings.push(end - start);
+                } catch (e) {
+                    // If CORS fails, use a different approach
+                    const end = performance.now();
+                    pings.push(end - start);
+                }
+            }
+            // Remove highest and lowest, average the rest
+            pings.sort((a, b) => a - b);
+            const trimmed = pings.slice(1, -1);
+            const avg = trimmed.reduce((s, v) => s + v, 0) / trimmed.length;
+            return Math.round(avg);
+        }
+
+        async function measureDownload(onProgress) {
+            const fileSize = 10_000_000; // 10MB
+            const url = `https://speed.cloudflare.com/__down?bytes=${fileSize}`;
+            const concurrentFetches = 3;
+            let totalBytes = 0;
+            const startTime = performance.now();
+
+            const promises = [];
+            for (let i = 0; i < concurrentFetches; i++) {
+                promises.push(
+                    fetch(url + `&cachebust=${Date.now()}_${i}`, { cache: 'no-store', mode: 'cors' })
+                        .then(async response => {
+                            const reader = response.body.getReader();
+                            let received = 0;
+                            while (true) {
+                                const { done, value } = await reader.read();
+                                if (done) break;
+                                received += value.length;
+                                totalBytes += value.length;
+                                const elapsed = (performance.now() - startTime) / 1000;
+                                if (elapsed > 0) {
+                                    const speedMbps = (totalBytes * 8) / (elapsed * 1_000_000);
+                                    onProgress(speedMbps);
+                                }
+                            }
+                            return received;
+                        })
+                );
+            }
+
+            await Promise.all(promises);
+            const elapsed = (performance.now() - startTime) / 1000;
+            const speedMbps = (totalBytes * 8) / (elapsed * 1_000_000);
+            return parseFloat(speedMbps.toFixed(1));
+        }
+
+        async function measureUpload(onProgress) {
+            const dataSize = 5_000_000; // 5MB
+            const blob = new Blob([new ArrayBuffer(dataSize)]);
+            const concurrentUploads = 2;
+            let completedBytes = 0;
+            const startTime = performance.now();
+
+            const promises = [];
+            for (let i = 0; i < concurrentUploads; i++) {
+                promises.push(
+                    fetch('/api/speed-test/upload', {
+                        method: 'POST',
+                        body: blob,
+                        headers: { 'Content-Type': 'application/octet-stream' }
+                    }).then(() => {
+                        completedBytes += dataSize;
+                        const elapsed = (performance.now() - startTime) / 1000;
+                        if (elapsed > 0) {
+                            const speedMbps = (completedBytes * 8) / (elapsed * 1_000_000);
+                            onProgress(speedMbps);
+                        }
+                        return dataSize;
+                    }).catch(() => {
+                        // Server might not be available
+                        completedBytes += dataSize;
+                        return dataSize;
+                    })
+                );
+            }
+
+            await Promise.all(promises);
+            const elapsed = (performance.now() - startTime) / 1000;
+            if (elapsed > 0) {
+                const speedMbps = (completedBytes * 8) / (elapsed * 1_000_000);
+                return parseFloat(speedMbps.toFixed(1));
+            }
+            return 0;
+        }
+
+        // Main test
+        async function startTest() {
+            const btn = document.getElementById('startBtn');
+            btn.disabled = true;
+            btn.classList.add('testing');
+            btn.textContent = 'Đang đo...';
+
+            document.getElementById('resultsRow').style.display = 'none';
+            resetPhases();
+            animateGaugeTo(0, 200);
+
+            let pingResult = 0;
+            let downloadResult = 0;
+            let uploadResult = 0;
+
+            try {
+                // Phase 1: Ping
+                setPhase('ping');
+                pingResult = await measurePing();
+                // Show ping on gauge as a fraction (lower is better)
+                animateGaugeTo(Math.min(pingResult, GAUGE_MAX), 300);
+                document.getElementById('gaugeSpeed').textContent = pingResult;
+
+                await new Promise(r => setTimeout(r, 500));
+
+                // Phase 2: Download
+                setPhase('download');
+                animateGaugeTo(0, 200);
+                downloadResult = await measureDownload((speed) => {
+                    animateGaugeTo(speed, 200);
+                });
+                animateGaugeTo(downloadResult, 300);
+
+                await new Promise(r => setTimeout(r, 500));
+
+                // Phase 3: Upload
+                setPhase('upload');
+                animateGaugeTo(0, 200);
+                let uploadSpeed = 0;
+                try {
+                    uploadResult = await measureUpload((speed) => {
+                        uploadSpeed = speed;
+                        animateGaugeTo(speed, 200);
+                    });
+                } catch (e) {
+                    uploadResult = 0;
+                }
+                if (uploadResult > 0) {
+                    animateGaugeTo(uploadResult, 300);
+                }
+
+            } catch (e) {
+                console.error('Lỗi khi đo tốc độ:', e);
+            }
+
+            // Done
+            setAllPhasesDone();
+
+            // Show results
+            document.getElementById('resultPing').textContent = pingResult;
+            document.getElementById('resultDownload').textContent = downloadResult;
+            document.getElementById('resultUpload').textContent = uploadResult || '--';
+            document.getElementById('resultsRow').style.display = 'grid';
+
+            // Final gauge shows download speed
+            animateGaugeTo(downloadResult, 500);
+
+            // Save to history
+            saveResult(pingResult, downloadResult, uploadResult);
+
+            btn.disabled = false;
+            btn.classList.remove('testing');
+            btn.textContent = 'Đo lại';
+        }
+
+        // History
+        function getHistory() {
+            try {
+                return JSON.parse(localStorage.getItem('speedTestHistory') || '[]');
+            } catch {
+                return [];
+            }
+        }
+
+        function saveResult(ping, download, upload) {
+            const history = getHistory();
+            history.unshift({
+                time: new Date().toISOString(),
+                ping,
+                download,
+                upload
+            });
+            // Keep last 10
+            if (history.length > 10) history.length = 10;
+            localStorage.setItem('speedTestHistory', JSON.stringify(history));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const history = getHistory();
+            const tbody = document.getElementById('historyBody');
+            const noHistory = document.getElementById('noHistory');
+
+            if (history.length === 0) {
+                tbody.innerHTML = '';
+                noHistory.style.display = 'block';
+                document.getElementById('clearHistoryBtn').style.display = 'none';
+                return;
+            }
+
+            noHistory.style.display = 'none';
+            document.getElementById('clearHistoryBtn').style.display = 'inline-block';
+
+            tbody.innerHTML = history.map(entry => {
+                const date = new Date(entry.time);
+                const formatted = date.toLocaleDateString('vi-VN', {
+                    day: '2-digit', month: '2-digit', year: 'numeric'
+                }) + ' ' + date.toLocaleTimeString('vi-VN', {
+                    hour: '2-digit', minute: '2-digit'
+                });
+                return `<tr>
+                    <td>${formatted}</td>
+                    <td>${entry.ping}</td>
+                    <td>${entry.download}</td>
+                    <td>${entry.upload || '--'}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function clearHistory() {
+            localStorage.removeItem('speedTestHistory');
+            renderHistory();
+        }
+
+        // Init
+        initGauge();
+        renderHistory();
+    </script>
+</body>
+</html>

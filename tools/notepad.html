@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sổ ghi chú - NQNghia Tools</title>
+    <link rel="stylesheet" href="../style.css">
+    <style>
+        .container {
+            max-width: 1000px;
+        }
+
+        .notepad-layout {
+            display: flex;
+            gap: 16px;
+            height: calc(100vh - 180px);
+            min-height: 520px;
+        }
+
+        /* ===== Sidebar ===== */
+        .sidebar {
+            width: 250px;
+            min-width: 250px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .btn-new-note {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-new-note:hover {
+            background: var(--accent-hover);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 8px 12px;
+            background: var(--bg-input);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent);
+        }
+
+        .search-input::placeholder {
+            color: var(--text-dim);
+        }
+
+        .note-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 6px 0;
+        }
+
+        .note-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .note-list::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        .note-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: background 0.15s, border-color 0.15s;
+        }
+
+        .note-item:hover {
+            background: rgba(108, 92, 231, 0.08);
+        }
+
+        .note-item.active {
+            border-left-color: var(--accent);
+            background: rgba(108, 92, 231, 0.12);
+        }
+
+        .note-item-title {
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 2px;
+        }
+
+        .note-item-preview {
+            font-size: 0.78rem;
+            color: var(--text-dim);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+        }
+
+        .note-item-time {
+            font-size: 0.72rem;
+            color: var(--text-dim);
+            opacity: 0.7;
+        }
+
+        .no-notes {
+            padding: 20px 14px;
+            text-align: center;
+            color: var(--text-dim);
+            font-size: 0.85rem;
+        }
+
+        /* ===== Editor ===== */
+        .editor-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius) var(--radius) 0 0;
+            border-bottom: none;
+        }
+
+        .title-input {
+            flex: 1;
+            min-width: 140px;
+            padding: 6px 10px;
+            background: var(--bg-input);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            font-weight: 600;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .title-input:focus {
+            border-color: var(--accent);
+        }
+
+        .title-input::placeholder {
+            color: var(--text-dim);
+        }
+
+        .toolbar-stats {
+            font-size: 0.78rem;
+            color: var(--text-dim);
+            white-space: nowrap;
+        }
+
+        .toolbar-btn {
+            padding: 6px 12px;
+            background: var(--bg-input);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+            white-space: nowrap;
+        }
+
+        .toolbar-btn:hover {
+            border-color: var(--accent);
+            background: rgba(108, 92, 231, 0.1);
+        }
+
+        .toolbar-btn.delete {
+            color: var(--error);
+            border-color: rgba(255, 107, 107, 0.3);
+        }
+
+        .toolbar-btn.delete:hover {
+            background: rgba(255, 107, 107, 0.12);
+            border-color: var(--error);
+        }
+
+        .save-indicator {
+            font-size: 0.78rem;
+            color: var(--success);
+            opacity: 0;
+            transition: opacity 0.3s;
+            white-space: nowrap;
+        }
+
+        .save-indicator.visible {
+            opacity: 1;
+        }
+
+        .mono-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.78rem;
+            color: var(--text-dim);
+            cursor: pointer;
+            white-space: nowrap;
+            user-select: none;
+        }
+
+        .mono-toggle input {
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        .editor-wrapper {
+            flex: 1;
+            display: flex;
+        }
+
+        .editor-textarea {
+            width: 100%;
+            height: 100%;
+            min-height: 500px;
+            padding: 18px 20px;
+            background: var(--bg-input);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 0 0 var(--radius) var(--radius);
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            resize: none;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .editor-textarea:focus {
+            border-color: var(--accent);
+        }
+
+        .editor-textarea::placeholder {
+            color: var(--text-dim);
+        }
+
+        .editor-textarea.monospace {
+            font-family: 'Cascadia Code', 'Fira Code', 'Consolas', 'Monaco', monospace;
+            font-size: 0.88rem;
+        }
+
+        .empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-dim);
+            font-size: 0.95rem;
+            gap: 12px;
+        }
+
+        .empty-state svg {
+            width: 48px;
+            height: 48px;
+            opacity: 0.4;
+        }
+
+        /* ===== Mobile hamburger ===== */
+        .sidebar-toggle {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            margin-bottom: 10px;
+            background: var(--bg-card);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.88rem;
+            cursor: pointer;
+        }
+
+        .hamburger {
+            width: 18px;
+            height: 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .hamburger span {
+            display: block;
+            width: 100%;
+            height: 2px;
+            background: var(--text);
+            border-radius: 1px;
+            transition: transform 0.2s;
+        }
+
+        /* ===== Mobile ===== */
+        @media (max-width: 639px) {
+            .notepad-layout {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .sidebar {
+                width: 100%;
+                min-width: unset;
+                max-height: 0;
+                overflow: hidden;
+                border: none;
+                transition: max-height 0.3s ease, border 0.2s;
+            }
+
+            .sidebar.open {
+                max-height: 350px;
+                border: 1px solid var(--border);
+                overflow: visible;
+            }
+
+            .sidebar.open .note-list {
+                max-height: 220px;
+                overflow-y: auto;
+            }
+
+            .sidebar-toggle {
+                display: flex;
+            }
+
+            .editor-textarea {
+                min-height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-nav">&larr; Quay lại</a>
+
+        <header>
+            <h1>Sổ ghi chú</h1>
+            <p style="color: var(--text-dim); font-size: 0.95rem;">Ghi chú nhanh, lưu trữ ngay trên trình duyệt</p>
+        </header>
+
+        <button class="sidebar-toggle" id="sidebarToggle">
+            <div class="hamburger"><span></span><span></span><span></span></div>
+            Danh sách ghi chú
+        </button>
+
+        <div class="notepad-layout">
+            <!-- Sidebar -->
+            <div class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <button class="btn-new-note" id="btnNewNote">+ Tạo ghi chú mới</button>
+                    <input type="text" class="search-input" id="searchInput" placeholder="Tìm kiếm ghi chú...">
+                </div>
+                <div class="note-list" id="noteList"></div>
+            </div>
+
+            <!-- Editor -->
+            <div class="editor-area" id="editorArea">
+                <div class="empty-state" id="emptyState">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <polyline points="10 9 9 9 8 9"/>
+                    </svg>
+                    <span>Chọn một ghi chú hoặc tạo ghi chú mới</span>
+                </div>
+
+                <div id="editorPanel" style="display:none; flex-direction:column; flex:1;">
+                    <div class="toolbar">
+                        <input type="text" class="title-input" id="titleInput" placeholder="Tiêu đề ghi chú">
+                        <span class="toolbar-stats" id="stats">0 từ &middot; 0 ký tự</span>
+                        <span class="save-indicator" id="saveIndicator">&#10003; Đã lưu</span>
+                        <label class="mono-toggle">
+                            <input type="checkbox" id="monoToggle"> Monospace
+                        </label>
+                        <button class="toolbar-btn" id="btnCopy">Sao chép</button>
+                        <button class="toolbar-btn" id="btnDownload">Tải về</button>
+                        <button class="toolbar-btn delete" id="btnDelete">Xoá ghi chú</button>
+                    </div>
+                    <div class="editor-wrapper">
+                        <textarea class="editor-textarea" id="editor" placeholder="Bắt đầu viết ghi chú của bạn..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'nqnghia_notes';
+
+        // ===== State =====
+        let notes = [];
+        let activeId = null;
+        let saveTimer = null;
+
+        // ===== DOM =====
+        const noteList = document.getElementById('noteList');
+        const searchInput = document.getElementById('searchInput');
+        const btnNewNote = document.getElementById('btnNewNote');
+        const emptyState = document.getElementById('emptyState');
+        const editorPanel = document.getElementById('editorPanel');
+        const titleInput = document.getElementById('titleInput');
+        const editor = document.getElementById('editor');
+        const stats = document.getElementById('stats');
+        const saveIndicator = document.getElementById('saveIndicator');
+        const monoToggle = document.getElementById('monoToggle');
+        const btnCopy = document.getElementById('btnCopy');
+        const btnDownload = document.getElementById('btnDownload');
+        const btnDelete = document.getElementById('btnDelete');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebar = document.getElementById('sidebar');
+
+        // ===== Helpers =====
+        function uuid() {
+            return crypto.randomUUID ? crypto.randomUUID() :
+                'xxxx-xxxx-xxxx'.replace(/x/g, () => Math.floor(Math.random() * 16).toString(16));
+        }
+
+        function loadNotes() {
+            try {
+                notes = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+            } catch { notes = []; }
+        }
+
+        function saveNotes() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+        }
+
+        function getNote(id) {
+            return notes.find(n => n.id === id);
+        }
+
+        function formatTime(iso) {
+            const d = new Date(iso);
+            const now = new Date();
+            const diff = now - d;
+            if (diff < 60000) return 'Vừa xong';
+            if (diff < 3600000) return Math.floor(diff / 60000) + ' phút trước';
+            if (diff < 86400000) return Math.floor(diff / 3600000) + ' giờ trước';
+            if (diff < 604800000) return Math.floor(diff / 86400000) + ' ngày trước';
+            return d.toLocaleDateString('vi-VN');
+        }
+
+        function countWords(text) {
+            const trimmed = text.trim();
+            if (!trimmed) return 0;
+            return trimmed.split(/\s+/).length;
+        }
+
+        function updateStats() {
+            const text = editor.value;
+            stats.textContent = countWords(text) + ' từ \u00b7 ' + text.length + ' ký tự';
+        }
+
+        function showSaved() {
+            saveIndicator.classList.add('visible');
+            setTimeout(() => saveIndicator.classList.remove('visible'), 1500);
+        }
+
+        // ===== Render sidebar =====
+        function renderList() {
+            const query = searchInput.value.toLowerCase().trim();
+            const filtered = query
+                ? notes.filter(n => n.title.toLowerCase().includes(query) || n.content.toLowerCase().includes(query))
+                : notes;
+
+            // Sort by modified desc
+            filtered.sort((a, b) => new Date(b.modified) - new Date(a.modified));
+
+            if (filtered.length === 0) {
+                noteList.innerHTML = '<div class="no-notes">' + (query ? 'Không tìm thấy ghi chú' : 'Chưa có ghi chú nào') + '</div>';
+                return;
+            }
+
+            noteList.innerHTML = filtered.map(n => {
+                const title = n.title || 'Ghi chú mới';
+                const preview = n.content.replace(/\n/g, ' ').substring(0, 50) || 'Trống';
+                return `<div class="note-item${n.id === activeId ? ' active' : ''}" data-id="${n.id}">
+                    <div class="note-item-title">${escapeHtml(title)}</div>
+                    <div class="note-item-preview">${escapeHtml(preview)}</div>
+                    <div class="note-item-time">${formatTime(n.modified)}</div>
+                </div>`;
+            }).join('');
+        }
+
+        function escapeHtml(str) {
+            const d = document.createElement('div');
+            d.textContent = str;
+            return d.innerHTML;
+        }
+
+        // ===== Open note =====
+        function openNote(id) {
+            activeId = id;
+            const note = getNote(id);
+            if (!note) { activeId = null; showEmpty(); return; }
+
+            emptyState.style.display = 'none';
+            editorPanel.style.display = 'flex';
+
+            titleInput.value = note.title;
+            editor.value = note.content;
+            updateStats();
+            renderList();
+
+            // Close sidebar on mobile
+            if (window.innerWidth < 640) sidebar.classList.remove('open');
+        }
+
+        function showEmpty() {
+            emptyState.style.display = 'flex';
+            editorPanel.style.display = 'none';
+            renderList();
+        }
+
+        // ===== Create note =====
+        function createNote() {
+            const now = new Date().toISOString();
+            const note = {
+                id: uuid(),
+                title: '',
+                content: '',
+                created: now,
+                modified: now
+            };
+            notes.unshift(note);
+            saveNotes();
+            openNote(note.id);
+            editor.focus();
+        }
+
+        // ===== Auto-save (debounced 1s) =====
+        function scheduleSave() {
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(() => {
+                const note = getNote(activeId);
+                if (!note) return;
+                note.content = editor.value;
+                // Auto-set title to first line if title is empty or was auto-set
+                const firstLine = editor.value.split('\n')[0].trim();
+                if (!titleInput.value.trim() && firstLine) {
+                    note.title = firstLine.substring(0, 60);
+                    titleInput.value = note.title;
+                }
+                note.modified = new Date().toISOString();
+                saveNotes();
+                renderList();
+                showSaved();
+            }, 1000);
+        }
+
+        // ===== Events =====
+        editor.addEventListener('input', () => {
+            updateStats();
+            scheduleSave();
+        });
+
+        titleInput.addEventListener('input', () => {
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(() => {
+                const note = getNote(activeId);
+                if (!note) return;
+                note.title = titleInput.value.trim();
+                note.modified = new Date().toISOString();
+                saveNotes();
+                renderList();
+                showSaved();
+            }, 1000);
+        });
+
+        noteList.addEventListener('click', (e) => {
+            const item = e.target.closest('.note-item');
+            if (item) openNote(item.dataset.id);
+        });
+
+        btnNewNote.addEventListener('click', createNote);
+
+        searchInput.addEventListener('input', renderList);
+
+        monoToggle.addEventListener('change', () => {
+            editor.classList.toggle('monospace', monoToggle.checked);
+            localStorage.setItem('nqnghia_notes_mono', monoToggle.checked ? '1' : '0');
+        });
+
+        btnCopy.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(editor.value);
+                btnCopy.textContent = 'Đã sao chép!';
+                setTimeout(() => btnCopy.textContent = 'Sao chép', 1500);
+            } catch {
+                editor.select();
+                document.execCommand('copy');
+                btnCopy.textContent = 'Đã sao chép!';
+                setTimeout(() => btnCopy.textContent = 'Sao chép', 1500);
+            }
+        });
+
+        btnDownload.addEventListener('click', async () => {
+            const note = getNote(activeId);
+            if (!note) return;
+            const filename = (note.title || 'ghi-chu') + '.txt';
+            const blob = new Blob([note.content], { type: 'text/plain;charset=utf-8' });
+
+            if (window.showSaveFilePicker) {
+                try {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: filename,
+                        types: [{ description: 'Tệp văn bản', accept: { 'text/plain': ['.txt'] } }]
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(blob);
+                    await writable.close();
+                    return;
+                } catch (err) {
+                    if (err.name === 'AbortError') return;
+                }
+            }
+
+            // Fallback
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        });
+
+        btnDelete.addEventListener('click', () => {
+            if (!activeId) return;
+            const note = getNote(activeId);
+            const name = note?.title || 'Ghi chú mới';
+            if (!confirm('Bạn có chắc muốn xoá "' + name + '"?')) return;
+            notes = notes.filter(n => n.id !== activeId);
+            activeId = null;
+            saveNotes();
+            showEmpty();
+        });
+
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+        });
+
+        // ===== Init =====
+        loadNotes();
+        if (localStorage.getItem('nqnghia_notes_mono') === '1') {
+            monoToggle.checked = true;
+            editor.classList.add('monospace');
+        }
+        renderList();
+        showEmpty();
+    </script>
+</body>
+</html>

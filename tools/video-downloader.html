@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Downloader - NQNghia Tools</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-nav">&larr; Quay lại</a>
+
+        <header>
+            <h1>Video Downloader</h1>
+            <p class="subtitle">Tải video từ YouTube, TikTok, Facebook — không watermark</p>
+        </header>
+
+        <div class="download-card">
+            <div class="input-group">
+                <input type="text" id="urlInput" placeholder="Dán link video vào đây..." autocomplete="off" spellcheck="false">
+                <div id="platformBadge" class="platform-badge hidden"></div>
+            </div>
+
+            <div class="options-row">
+                <div class="format-select">
+                    <label>Định dạng:</label>
+                    <div class="format-toggle">
+                        <button class="format-btn active" data-format="mp4">MP4</button>
+                        <button class="format-btn" data-format="mp3">MP3</button>
+                    </div>
+                </div>
+                <div class="quality-select" id="qualityGroup">
+                    <label for="qualitySelect">Chất lượng:</label>
+                    <select id="qualitySelect">
+                        <option value="best">Cao nhất</option>
+                        <option value="1080p">1080p</option>
+                        <option value="720p">720p</option>
+                        <option value="480p">480p</option>
+                        <option value="360p">360p</option>
+                    </select>
+                </div>
+            </div>
+
+            <button id="downloadBtn" class="btn-download" disabled>
+                <span class="btn-text">Tải Video</span>
+                <span class="btn-loading hidden">
+                    <span class="spinner"></span> Đang tải...
+                </span>
+            </button>
+        </div>
+
+        <div id="progressArea" class="progress-area hidden">
+            <div class="progress-header">
+                <span id="progressStatus" class="progress-status">Đang chuẩn bị...</span>
+                <span id="progressPercent" class="progress-percent">0%</span>
+            </div>
+            <div class="progress-bar-track">
+                <div id="progressBarFill" class="progress-bar-fill" style="width: 0%"></div>
+            </div>
+            <div class="progress-details">
+                <span id="progressSpeed" class="progress-speed"></span>
+                <span id="progressEta" class="progress-eta"></span>
+            </div>
+        </div>
+
+        <div id="resultArea" class="result-area hidden">
+            <div id="resultContent"></div>
+        </div>
+
+        <div class="history-section">
+            <h2>Lịch sử tải <span id="historyCount" class="history-count">0</span></h2>
+            <div id="historyList" class="history-list">
+                <p class="empty-history">Chưa có video nào được tải.</p>
+            </div>
+            <button id="clearHistoryBtn" class="btn-clear hidden">Xoá lịch sử</button>
+        </div>
+    </div>
+
+    <script src="../app.js"></script>
+</body>
+</html>

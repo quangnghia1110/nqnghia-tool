@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nén Ảnh - NQNghia Tools</title>
+    <link rel="stylesheet" href="../style.css">
+    <style>
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 48px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--bg-input);
+            margin-bottom: 20px;
+        }
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: var(--accent);
+            background: rgba(108, 92, 231, 0.06);
+        }
+
+        .drop-zone-icon {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .drop-zone-text {
+            color: var(--text);
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .drop-zone-hint {
+            color: var(--text-dim);
+            font-size: 0.82rem;
+        }
+
+        .quality-control {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 20px;
+            padding: 16px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+        }
+
+        .quality-control label {
+            font-size: 0.88rem;
+            color: var(--text-dim);
+            white-space: nowrap;
+        }
+
+        .quality-slider {
+            flex: 1;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        .quality-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            transition: box-shadow 0.2s;
+        }
+
+        .quality-slider::-webkit-slider-thumb:hover {
+            box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.25);
+        }
+
+        .quality-slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: none;
+        }
+
+        .quality-value {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--accent);
+            min-width: 40px;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .results-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .image-result {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            animation: slideIn 0.3s ease;
+        }
+
+        .image-result .thumb {
+            width: 56px;
+            height: 56px;
+            border-radius: 6px;
+            object-fit: cover;
+            flex-shrink: 0;
+            background: var(--bg-input);
+        }
+
+        .image-result .info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .image-result .file-name {
+            font-size: 0.88rem;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+        }
+
+        .image-result .size-compare {
+            font-size: 0.78rem;
+            color: var(--text-dim);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .size-compare .original {
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+
+        .size-compare .arrow {
+            color: var(--text-dim);
+        }
+
+        .size-compare .compressed {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .size-compare .saving {
+            color: var(--accent);
+            font-weight: 600;
+            margin-left: 4px;
+        }
+
+        .btn-dl {
+            padding: 8px 14px;
+            border: none;
+            border-radius: var(--radius-sm);
+            background: var(--accent);
+            color: #fff;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .btn-dl:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-download-all {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: var(--radius-sm);
+            background: var(--success);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 16px;
+        }
+
+        .btn-download-all:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(0, 214, 143, 0.25);
+        }
+
+        .btn-download-all:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .hidden { display: none !important; }
+
+        .processing-indicator {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+
+        .processing-indicator .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid transparent;
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 500px) {
+            .image-result {
+                flex-wrap: wrap;
+            }
+            .image-result .info {
+                min-width: calc(100% - 70px);
+            }
+            .btn-dl {
+                width: 100%;
+                text-align: center;
+            }
+            .quality-control {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-nav">&larr; Quay lại</a>
+
+        <header>
+            <h1>Nén Ảnh</h1>
+            <p class="subtitle">Giảm dung lượng ảnh trực tiếp trên trình duyệt — không cần tải lên máy chủ</p>
+        </header>
+
+        <div class="download-card">
+            <div class="drop-zone" id="dropZone">
+                <span class="drop-zone-icon">🖼️</span>
+                <div class="drop-zone-text">Kéo thả ảnh vào đây hoặc nhấn để chọn</div>
+                <div class="drop-zone-hint">Hỗ trợ nhiều ảnh cùng lúc (JPG, PNG, WebP...)</div>
+                <input type="file" id="fileInput" accept="image/*" multiple hidden>
+            </div>
+
+            <div class="quality-control">
+                <label for="qualitySlider">Chất lượng:</label>
+                <input type="range" id="qualitySlider" class="quality-slider" min="1" max="100" value="80">
+                <span id="qualityValue" class="quality-value">80%</span>
+            </div>
+
+            <div id="processingIndicator" class="processing-indicator hidden">
+                <span class="spinner"></span> Đang nén ảnh...
+            </div>
+
+            <div id="resultsList" class="results-list"></div>
+
+            <button id="downloadAllBtn" class="btn-download-all hidden">
+                Tải tất cả (ZIP)
+            </button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3/dist/jszip.min.js"></script>
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const qualitySlider = document.getElementById('qualitySlider');
+        const qualityValue = document.getElementById('qualityValue');
+        const resultsList = document.getElementById('resultsList');
+        const downloadAllBtn = document.getElementById('downloadAllBtn');
+        const processingIndicator = document.getElementById('processingIndicator');
+
+        let compressedFiles = [];
+
+        // Quality slider
+        qualitySlider.addEventListener('input', () => {
+            qualityValue.textContent = qualitySlider.value + '%';
+        });
+
+        // Drop zone events
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = [...e.dataTransfer.files].filter(f => f.type.startsWith('image/'));
+            if (files.length) processFiles(files);
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length) {
+                processFiles([...fileInput.files]);
+                fileInput.value = '';
+            }
+        });
+
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        async function compressImage(file, quality) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                const url = URL.createObjectURL(file);
+
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.naturalWidth;
+                    canvas.height = img.naturalHeight;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    URL.revokeObjectURL(url);
+
+                    // Use JPEG for best compression, keep PNG if quality is 100
+                    let mimeType = 'image/jpeg';
+                    let ext = '.jpg';
+                    if (file.type === 'image/png' && quality >= 1) {
+                        // For PNG, use WebP for better compression
+                        mimeType = 'image/webp';
+                        ext = '.webp';
+                    }
+                    if (file.type === 'image/webp') {
+                        mimeType = 'image/webp';
+                        ext = '.webp';
+                    }
+
+                    canvas.toBlob(
+                        (blob) => {
+                            if (!blob) {
+                                reject(new Error('Không thể nén ảnh'));
+                                return;
+                            }
+                            // If compressed is larger, try JPEG as fallback
+                            if (blob.size >= file.size && mimeType !== 'image/jpeg') {
+                                canvas.toBlob(
+                                    (jpegBlob) => {
+                                        if (jpegBlob && jpegBlob.size < blob.size) {
+                                            resolve({ blob: jpegBlob, ext: '.jpg' });
+                                        } else {
+                                            resolve({ blob, ext });
+                                        }
+                                    },
+                                    'image/jpeg',
+                                    quality / 100
+                                );
+                            } else {
+                                resolve({ blob, ext });
+                            }
+                        },
+                        mimeType,
+                        quality / 100
+                    );
+                };
+
+                img.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    reject(new Error('Không thể đọc ảnh'));
+                };
+
+                img.src = url;
+            });
+        }
+
+        async function processFiles(files) {
+            processingIndicator.classList.remove('hidden');
+
+            const quality = parseInt(qualitySlider.value);
+
+            for (const file of files) {
+                try {
+                    const { blob, ext } = await compressImage(file, quality);
+
+                    const baseName = file.name.replace(/\.[^.]+$/, '');
+                    const compressedName = baseName + '_compressed' + ext;
+                    const thumbUrl = URL.createObjectURL(blob);
+
+                    const entry = {
+                        name: compressedName,
+                        originalName: file.name,
+                        originalSize: file.size,
+                        compressedSize: blob.size,
+                        blob: blob,
+                        thumbUrl: thumbUrl
+                    };
+
+                    compressedFiles.push(entry);
+                    renderResult(entry);
+                } catch (err) {
+                    console.error('Lỗi nén ảnh:', file.name, err);
+                }
+            }
+
+            processingIndicator.classList.add('hidden');
+
+            if (compressedFiles.length > 1) {
+                downloadAllBtn.classList.remove('hidden');
+            }
+        }
+
+        function renderResult(entry) {
+            const saving = entry.originalSize > 0
+                ? Math.round((1 - entry.compressedSize / entry.originalSize) * 100)
+                : 0;
+
+            const div = document.createElement('div');
+            div.className = 'image-result';
+            div.innerHTML = `
+                <img class="thumb" src="${entry.thumbUrl}" alt="Xem trước">
+                <div class="info">
+                    <div class="file-name" title="${entry.originalName}">${entry.originalName}</div>
+                    <div class="size-compare">
+                        <span class="original">${formatSize(entry.originalSize)}</span>
+                        <span class="arrow">→</span>
+                        <span class="compressed">${formatSize(entry.compressedSize)}</span>
+                        <span class="saving">(${saving >= 0 ? '-' : '+'}${Math.abs(saving)}%)</span>
+                    </div>
+                </div>
+                <button class="btn-dl" data-index="${compressedFiles.length - 1}">Tải về</button>
+            `;
+
+            div.querySelector('.btn-dl').addEventListener('click', (e) => {
+                const idx = parseInt(e.target.dataset.index);
+                downloadFile(compressedFiles[idx]);
+            });
+
+            resultsList.appendChild(div);
+        }
+
+        async function downloadFile(entry) {
+            // Try showSaveFilePicker first (modern browsers)
+            if (window.showSaveFilePicker) {
+                try {
+                    const ext = entry.name.match(/\.[^.]+$/)?.[0] || '.jpg';
+                    const mimeMap = {
+                        '.jpg': 'image/jpeg',
+                        '.jpeg': 'image/jpeg',
+                        '.png': 'image/png',
+                        '.webp': 'image/webp'
+                    };
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: entry.name,
+                        types: [{
+                            description: 'Ảnh đã nén',
+                            accept: { [mimeMap[ext] || 'image/jpeg']: [ext] }
+                        }]
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(entry.blob);
+                    await writable.close();
+                    return;
+                } catch (err) {
+                    if (err.name === 'AbortError') return;
+                    // Fall through to legacy download
+                }
+            }
+
+            // Fallback: anchor download
+            const url = URL.createObjectURL(entry.blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = entry.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
+        }
+
+        // Download all as ZIP
+        downloadAllBtn.addEventListener('click', async () => {
+            if (compressedFiles.length === 0) return;
+
+            downloadAllBtn.disabled = true;
+            downloadAllBtn.textContent = 'Đang tạo ZIP...';
+
+            try {
+                const zip = new JSZip();
+
+                for (const entry of compressedFiles) {
+                    zip.file(entry.name, entry.blob);
+                }
+
+                const zipBlob = await zip.generateAsync({ type: 'blob' });
+
+                // Try showSaveFilePicker
+                if (window.showSaveFilePicker) {
+                    try {
+                        const handle = await window.showSaveFilePicker({
+                            suggestedName: 'anh-da-nen.zip',
+                            types: [{
+                                description: 'Tệp ZIP',
+                                accept: { 'application/zip': ['.zip'] }
+                            }]
+                        });
+                        const writable = await handle.createWritable();
+                        await writable.write(zipBlob);
+                        await writable.close();
+
+                        downloadAllBtn.disabled = false;
+                        downloadAllBtn.textContent = 'Tải tất cả (ZIP)';
+                        return;
+                    } catch (err) {
+                        if (err.name === 'AbortError') {
+                            downloadAllBtn.disabled = false;
+                            downloadAllBtn.textContent = 'Tải tất cả (ZIP)';
+                            return;
+                        }
+                    }
+                }
+
+                // Fallback
+                const url = URL.createObjectURL(zipBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'anh-da-nen.zip';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 5000);
+            } catch (err) {
+                console.error('Lỗi tạo ZIP:', err);
+                alert('Không thể tạo tệp ZIP. Vui lòng thử lại.');
+            }
+
+            downloadAllBtn.disabled = false;
+            downloadAllBtn.textContent = 'Tải tất cả (ZIP)';
+        });
+    </script>
+</body>
+</html>

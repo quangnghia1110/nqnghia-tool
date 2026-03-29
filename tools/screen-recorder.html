@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quay Màn Hình - NQNghia Tools</title>
+    <link rel="stylesheet" href="../style.css">
+    <style>
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .rec-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff0033;
+            animation: pulse 1s infinite;
+            display: inline-block;
+        }
+
+        .options-section {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .option-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            color: var(--text);
+            font-size: 0.95rem;
+            user-select: none;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        .format-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .format-selector label {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+
+        .format-selector select {
+            background: var(--bg-input);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 6px 12px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .btn-record {
+            width: 100%;
+            padding: 16px 24px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            background: var(--accent);
+            color: #fff;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+
+        .btn-record:hover {
+            opacity: 0.9;
+        }
+
+        .btn-record:active {
+            transform: scale(0.98);
+        }
+
+        .btn-record:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-stop {
+            background: var(--error, #e53e3e);
+        }
+
+        .btn-pause {
+            background: var(--border);
+            color: var(--text);
+        }
+
+        .btn-download-video {
+            background: var(--success, #38a169);
+        }
+
+        .btn-reset {
+            background: var(--bg-input);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .recording-controls {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .recording-controls button {
+            flex: 1;
+        }
+
+        .recording-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 12px;
+            background: var(--bg-input);
+            border-radius: var(--radius-sm);
+            margin-bottom: 16px;
+            font-size: 1rem;
+            color: var(--text);
+        }
+
+        .recording-status .timer {
+            font-family: 'Courier New', monospace;
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .recording-status .status-text {
+            color: #ff0033;
+            font-weight: 600;
+        }
+
+        .preview-container {
+            margin-top: 16px;
+            border-radius: var(--radius);
+            overflow: hidden;
+            background: #000;
+        }
+
+        .preview-container video {
+            width: 100%;
+            display: block;
+            border-radius: var(--radius);
+            max-height: 450px;
+            object-fit: contain;
+            background: #000;
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .result-actions button {
+            flex: 1;
+        }
+
+        .file-info {
+            text-align: center;
+            color: var(--text-dim);
+            font-size: 0.85rem;
+            margin-top: 10px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .section-title {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-nav">&larr; Quay lại</a>
+
+        <header>
+            <h1>Quay Màn Hình</h1>
+            <p class="subtitle">Quay màn hình trực tiếp trên trình duyệt — không cần cài phần mềm</p>
+        </header>
+
+        <div class="download-card">
+            <!-- Options (before recording) -->
+            <div id="optionsSection" class="options-section">
+                <div class="section-title">Tuỳ chọn âm thanh</div>
+                <div class="option-row">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="micAudio">
+                        Thu âm micro
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="sysAudio" checked>
+                        Thu âm hệ thống
+                    </label>
+                </div>
+
+                <div class="format-selector">
+                    <label for="formatSelect">Định dạng:</label>
+                    <select id="formatSelect">
+                        <option value="webm">WebM</option>
+                        <option value="mp4">MP4</option>
+                    </select>
+                </div>
+
+                <button id="startBtn" class="btn-record">Bắt đầu quay</button>
+            </div>
+
+            <!-- Recording state -->
+            <div id="recordingSection" class="hidden">
+                <div class="recording-status">
+                    <span class="rec-dot"></span>
+                    <span class="status-text" id="statusText">Đang quay</span>
+                    <span class="timer" id="timer">00:00</span>
+                </div>
+
+                <div class="preview-container">
+                    <video id="livePreview" autoplay muted playsinline></video>
+                </div>
+
+                <div class="recording-controls">
+                    <button id="pauseBtn" class="btn-record btn-pause">Tạm dừng</button>
+                    <button id="stopBtn" class="btn-record btn-stop">Dừng quay</button>
+                </div>
+            </div>
+
+            <!-- Result state -->
+            <div id="resultSection" class="hidden">
+                <div class="preview-container">
+                    <video id="resultPreview" controls playsinline></video>
+                </div>
+                <div class="file-info" id="fileInfo"></div>
+
+                <div class="result-actions">
+                    <button id="downloadBtn" class="btn-record btn-download-video">Tải về</button>
+                    <button id="resetBtn" class="btn-record btn-reset">Quay lại</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const micAudioCb = document.getElementById('micAudio');
+        const sysAudioCb = document.getElementById('sysAudio');
+        const formatSelect = document.getElementById('formatSelect');
+        const livePreview = document.getElementById('livePreview');
+        const resultPreview = document.getElementById('resultPreview');
+        const timerEl = document.getElementById('timer');
+        const statusText = document.getElementById('statusText');
+        const fileInfo = document.getElementById('fileInfo');
+
+        const optionsSection = document.getElementById('optionsSection');
+        const recordingSection = document.getElementById('recordingSection');
+        const resultSection = document.getElementById('resultSection');
+
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let screenStream = null;
+        let micStream = null;
+        let combinedStream = null;
+        let timerInterval = null;
+        let elapsedSeconds = 0;
+        let recordedBlob = null;
+
+        function showSection(section) {
+            optionsSection.classList.add('hidden');
+            recordingSection.classList.add('hidden');
+            resultSection.classList.add('hidden');
+            section.classList.remove('hidden');
+        }
+
+        function updateTimer() {
+            elapsedSeconds++;
+            const mins = String(Math.floor(elapsedSeconds / 60)).padStart(2, '0');
+            const secs = String(elapsedSeconds % 60).padStart(2, '0');
+            timerEl.textContent = `${mins}:${secs}`;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        function getMimeType() {
+            const format = formatSelect.value;
+            if (format === 'mp4') {
+                // Try MP4 first, fall back to WebM
+                if (MediaRecorder.isTypeSupported('video/mp4; codecs="avc1.424028, mp4a.40.2"')) {
+                    return 'video/mp4; codecs="avc1.424028, mp4a.40.2"';
+                }
+                if (MediaRecorder.isTypeSupported('video/mp4')) {
+                    return 'video/mp4';
+                }
+                // Fallback to webm
+            }
+            if (MediaRecorder.isTypeSupported('video/webm; codecs=vp9,opus')) {
+                return 'video/webm; codecs=vp9,opus';
+            }
+            if (MediaRecorder.isTypeSupported('video/webm; codecs=vp8,opus')) {
+                return 'video/webm; codecs=vp8,opus';
+            }
+            return 'video/webm';
+        }
+
+        function getFileExtension(mimeType) {
+            if (mimeType.startsWith('video/mp4')) return 'mp4';
+            return 'webm';
+        }
+
+        function stopAllStreams() {
+            if (screenStream) {
+                screenStream.getTracks().forEach(t => t.stop());
+                screenStream = null;
+            }
+            if (micStream) {
+                micStream.getTracks().forEach(t => t.stop());
+                micStream = null;
+            }
+            if (combinedStream) {
+                combinedStream = null;
+            }
+            livePreview.srcObject = null;
+        }
+
+        async function startRecording() {
+            try {
+                recordedChunks = [];
+                elapsedSeconds = 0;
+                timerEl.textContent = '00:00';
+
+                // Get screen stream
+                const displayOptions = {
+                    video: { cursor: 'always' },
+                    audio: sysAudioCb.checked
+                };
+                screenStream = await navigator.mediaDevices.getDisplayMedia(displayOptions);
+
+                // Handle user stopping the share via browser UI
+                screenStream.getVideoTracks()[0].addEventListener('ended', () => {
+                    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                        stopRecording();
+                    }
+                });
+
+                // Get mic stream if requested
+                let audioTracks = [];
+                if (screenStream.getAudioTracks().length > 0) {
+                    audioTracks.push(...screenStream.getAudioTracks());
+                }
+
+                if (micAudioCb.checked) {
+                    try {
+                        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        audioTracks.push(...micStream.getAudioTracks());
+                    } catch (err) {
+                        console.warn('Không thể truy cập micro:', err);
+                    }
+                }
+
+                // Combine streams
+                const videoTracks = screenStream.getVideoTracks();
+
+                if (audioTracks.length > 1) {
+                    // Mix multiple audio tracks using AudioContext
+                    const audioCtx = new AudioContext();
+                    const dest = audioCtx.createMediaStreamDestination();
+
+                    for (const track of audioTracks) {
+                        const source = audioCtx.createMediaStreamSource(new MediaStream([track]));
+                        source.connect(dest);
+                    }
+
+                    combinedStream = new MediaStream([
+                        ...videoTracks,
+                        ...dest.stream.getAudioTracks()
+                    ]);
+                } else {
+                    combinedStream = new MediaStream([
+                        ...videoTracks,
+                        ...audioTracks
+                    ]);
+                }
+
+                // Set up live preview
+                livePreview.srcObject = screenStream;
+
+                // Set up MediaRecorder
+                const mimeType = getMimeType();
+                mediaRecorder = new MediaRecorder(combinedStream, {
+                    mimeType: mimeType,
+                    videoBitsPerSecond: 5000000
+                });
+
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data && e.data.size > 0) {
+                        recordedChunks.push(e.data);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    clearInterval(timerInterval);
+                    const ext = getFileExtension(mimeType);
+                    const blobType = ext === 'mp4' ? 'video/mp4' : 'video/webm';
+                    recordedBlob = new Blob(recordedChunks, { type: blobType });
+
+                    resultPreview.src = URL.createObjectURL(recordedBlob);
+                    fileInfo.textContent = `Kích thước: ${formatFileSize(recordedBlob.size)} — Định dạng: ${ext.toUpperCase()}`;
+
+                    stopAllStreams();
+                    showSection(resultSection);
+                };
+
+                mediaRecorder.start(1000); // Collect data every second
+
+                // Start timer
+                timerInterval = setInterval(updateTimer, 1000);
+
+                pauseBtn.textContent = 'Tạm dừng';
+                statusText.textContent = 'Đang quay';
+                showSection(recordingSection);
+
+            } catch (err) {
+                console.error('Lỗi khi bắt đầu quay:', err);
+                stopAllStreams();
+                if (err.name !== 'NotAllowedError') {
+                    alert('Không thể bắt đầu quay màn hình. Vui lòng thử lại.');
+                }
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+        }
+
+        function togglePause() {
+            if (!mediaRecorder) return;
+
+            if (mediaRecorder.state === 'recording') {
+                mediaRecorder.pause();
+                clearInterval(timerInterval);
+                pauseBtn.textContent = 'Tiếp tục';
+                statusText.textContent = 'Tạm dừng';
+                document.querySelector('.rec-dot').style.animationPlayState = 'paused';
+            } else if (mediaRecorder.state === 'paused') {
+                mediaRecorder.resume();
+                timerInterval = setInterval(updateTimer, 1000);
+                pauseBtn.textContent = 'Tạm dừng';
+                statusText.textContent = 'Đang quay';
+                document.querySelector('.rec-dot').style.animationPlayState = 'running';
+            }
+        }
+
+        async function downloadRecording() {
+            if (!recordedBlob) return;
+
+            const ext = getFileExtension(recordedBlob.type);
+            const fileName = `screen-recording-${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')}.${ext}`;
+
+            // Try showSaveFilePicker first
+            if (window.showSaveFilePicker) {
+                try {
+                    const fileTypes = ext === 'mp4'
+                        ? [{ description: 'Video MP4', accept: { 'video/mp4': ['.mp4'] } }]
+                        : [{ description: 'Video WebM', accept: { 'video/webm': ['.webm'] } }];
+
+                    const handle = await showSaveFilePicker({
+                        suggestedName: fileName,
+                        types: fileTypes
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(recordedBlob);
+                    await writable.close();
+                    return;
+                } catch (err) {
+                    if (err.name === 'AbortError') return;
+                    // Fall through to legacy download
+                }
+            }
+
+            // Fallback: create anchor link
+            const url = URL.createObjectURL(recordedBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
+        }
+
+        function resetRecorder() {
+            recordedChunks = [];
+            recordedBlob = null;
+            elapsedSeconds = 0;
+            timerEl.textContent = '00:00';
+            if (resultPreview.src) {
+                URL.revokeObjectURL(resultPreview.src);
+                resultPreview.src = '';
+            }
+            showSection(optionsSection);
+        }
+
+        // Event listeners
+        startBtn.addEventListener('click', startRecording);
+        stopBtn.addEventListener('click', stopRecording);
+        pauseBtn.addEventListener('click', togglePause);
+        downloadBtn.addEventListener('click', downloadRecording);
+        resetBtn.addEventListener('click', resetRecorder);
+    </script>
+</body>
+</html>

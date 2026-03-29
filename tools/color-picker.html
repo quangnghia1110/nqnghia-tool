@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bộ chọn màu - NQNghia Tools</title>
+    <link rel="stylesheet" href="../style.css">
+    <style>
+        .color-preview {
+            width: 100%;
+            height: 220px;
+            border-radius: var(--radius);
+            border: 2px solid var(--border);
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 20px;
+            transition: background-color 0.2s;
+        }
+
+        .color-preview-inner {
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(45deg, #ccc 25%, transparent 25%),
+                linear-gradient(-45deg, #ccc 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #ccc 75%),
+                linear-gradient(-45deg, transparent 75%, #ccc 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+
+        .color-preview-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .color-preview-hex {
+            font-size: 1.5rem;
+            font-weight: 700;
+            padding: 8px 20px;
+            border-radius: var(--radius-sm);
+            background: rgba(0,0,0,0.45);
+            color: #fff;
+            letter-spacing: 1px;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+            user-select: all;
+        }
+
+        .picker-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+
+        .picker-row label {
+            color: var(--text);
+            font-weight: 500;
+            font-size: 0.95rem;
+            white-space: nowrap;
+        }
+
+        .native-picker-wrap {
+            position: relative;
+            width: 56px;
+            height: 56px;
+            flex-shrink: 0;
+        }
+
+        .native-picker-wrap input[type="color"] {
+            width: 100%;
+            height: 100%;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            background: none;
+            padding: 2px;
+        }
+
+        .native-picker-wrap input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        .native-picker-wrap input[type="color"]::-webkit-color-swatch {
+            border: none;
+            border-radius: 4px;
+        }
+
+        .hex-input {
+            flex: 1;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text);
+            padding: 12px 14px;
+            font-size: 1rem;
+            font-family: 'Courier New', monospace;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .hex-input:focus {
+            border-color: var(--accent);
+        }
+
+        .alpha-section {
+            margin-bottom: 24px;
+        }
+
+        .alpha-section label {
+            display: block;
+            color: var(--text);
+            font-weight: 500;
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+        }
+
+        .alpha-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .alpha-slider {
+            flex: 1;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(to right, transparent, var(--accent));
+            outline: none;
+            cursor: pointer;
+        }
+
+        .alpha-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: 2px solid var(--text);
+            cursor: pointer;
+        }
+
+        .alpha-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: 2px solid var(--text);
+            cursor: pointer;
+        }
+
+        .alpha-value {
+            color: var(--text);
+            font-weight: 600;
+            font-size: 0.95rem;
+            min-width: 48px;
+            text-align: right;
+        }
+
+        .color-values-section {
+            margin-bottom: 28px;
+        }
+
+        .color-values-section h3 {
+            color: var(--text);
+            font-size: 1.05rem;
+            margin-bottom: 12px;
+        }
+
+        .color-value-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            margin-bottom: 8px;
+        }
+
+        .color-value-label {
+            color: var(--accent);
+            font-weight: 700;
+            font-size: 0.85rem;
+            min-width: 48px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .color-value-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+            outline: none;
+            cursor: default;
+        }
+
+        .copy-btn {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 14px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .copy-btn:hover {
+            background: var(--accent-hover);
+        }
+
+        .copy-btn:active {
+            transform: scale(0.96);
+        }
+
+        .copy-btn.copied {
+            background: var(--success);
+        }
+
+        .palette-section, .history-section {
+            margin-bottom: 28px;
+        }
+
+        .palette-section h3, .history-section h3 {
+            color: var(--text);
+            font-size: 1.05rem;
+            margin-bottom: 12px;
+        }
+
+        .swatch-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .swatch {
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            border: 2px solid var(--border);
+            cursor: pointer;
+            transition: transform 0.15s, border-color 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+
+        .swatch:hover {
+            transform: scale(1.18);
+            border-color: var(--accent);
+            box-shadow: 0 0 8px rgba(108,92,231,0.35);
+            z-index: 1;
+        }
+
+        .history-empty {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            font-style: italic;
+        }
+
+        .clear-history-btn {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            border-radius: 6px;
+            padding: 4px 12px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            margin-left: 12px;
+            transition: color 0.2s, border-color 0.2s;
+        }
+
+        .clear-history-btn:hover {
+            color: var(--error);
+            border-color: var(--error);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .section-header h3 {
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-nav">&larr; Quay lại</a>
+
+        <div class="download-card">
+            <h1>🎨 Bộ chọn màu</h1>
+            <p style="color: var(--text-dim); margin-bottom: 24px;">Chọn màu và lấy mã màu ở nhiều định dạng khác nhau.</p>
+
+            <!-- Color Preview -->
+            <div class="color-preview">
+                <div class="color-preview-inner"></div>
+                <div class="color-preview-overlay" id="previewOverlay">
+                    <span class="color-preview-hex" id="previewHex">#6C5CE7</span>
+                </div>
+            </div>
+
+            <!-- Picker + HEX input -->
+            <div class="picker-row">
+                <div class="native-picker-wrap">
+                    <input type="color" id="colorPicker" value="#6c5ce7">
+                </div>
+                <label for="hexInput">HEX:</label>
+                <input type="text" id="hexInput" class="hex-input" value="#6C5CE7" maxlength="9" spellcheck="false" placeholder="#RRGGBB">
+            </div>
+
+            <!-- Alpha slider -->
+            <div class="alpha-section">
+                <label>Độ trong suốt (Alpha)</label>
+                <div class="alpha-row">
+                    <input type="range" id="alphaSlider" class="alpha-slider" min="0" max="100" value="100">
+                    <span class="alpha-value" id="alphaValue">100%</span>
+                </div>
+            </div>
+
+            <!-- Color values -->
+            <div class="color-values-section">
+                <h3>Giá trị màu</h3>
+
+                <div class="color-value-row">
+                    <span class="color-value-label">HEX</span>
+                    <input type="text" class="color-value-input" id="valHex" readonly>
+                    <button class="copy-btn" onclick="copyValue('valHex', this)">Sao chép</button>
+                </div>
+                <div class="color-value-row">
+                    <span class="color-value-label">RGB</span>
+                    <input type="text" class="color-value-input" id="valRgb" readonly>
+                    <button class="copy-btn" onclick="copyValue('valRgb', this)">Sao chép</button>
+                </div>
+                <div class="color-value-row">
+                    <span class="color-value-label">HSL</span>
+                    <input type="text" class="color-value-input" id="valHsl" readonly>
+                    <button class="copy-btn" onclick="copyValue('valHsl', this)">Sao chép</button>
+                </div>
+                <div class="color-value-row">
+                    <span class="color-value-label">RGBA</span>
+                    <input type="text" class="color-value-input" id="valRgba" readonly>
+                    <button class="copy-btn" onclick="copyValue('valRgba', this)">Sao chép</button>
+                </div>
+                <div class="color-value-row">
+                    <span class="color-value-label">HSV</span>
+                    <input type="text" class="color-value-input" id="valHsv" readonly>
+                    <button class="copy-btn" onclick="copyValue('valHsv', this)">Sao chép</button>
+                </div>
+            </div>
+
+            <!-- Predefined palette -->
+            <div class="palette-section">
+                <h3>Bảng màu có sẵn</h3>
+                <div class="swatch-grid" id="paletteGrid"></div>
+            </div>
+
+            <!-- History -->
+            <div class="history-section">
+                <div class="section-header">
+                    <h3>Lịch sử màu đã chọn</h3>
+                    <button class="clear-history-btn" id="clearHistoryBtn" onclick="clearHistory()">Xoá lịch sử</button>
+                </div>
+                <div class="swatch-grid" id="historyGrid"></div>
+                <p class="history-empty" id="historyEmpty">Chưa có màu nào trong lịch sử.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- State ---
+        let currentR = 108, currentG = 92, currentB = 231;
+        let currentAlpha = 1.0;
+
+        // --- Elements ---
+        const colorPicker = document.getElementById('colorPicker');
+        const hexInput = document.getElementById('hexInput');
+        const alphaSlider = document.getElementById('alphaSlider');
+        const alphaValueEl = document.getElementById('alphaValue');
+        const previewOverlay = document.getElementById('previewOverlay');
+        const previewHex = document.getElementById('previewHex');
+
+        const valHex = document.getElementById('valHex');
+        const valRgb = document.getElementById('valRgb');
+        const valHsl = document.getElementById('valHsl');
+        const valRgba = document.getElementById('valRgba');
+        const valHsv = document.getElementById('valHsv');
+
+        const paletteGrid = document.getElementById('paletteGrid');
+        const historyGrid = document.getElementById('historyGrid');
+        const historyEmpty = document.getElementById('historyEmpty');
+        const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+
+        // --- Predefined colors ---
+        const predefinedColors = [
+            '#FF0000', '#FF4500', '#FF6347', '#FF6B6B', '#E74C3C',
+            '#FF8C00', '#FFA500', '#F39C12', '#FFD700', '#FFEB3B',
+            '#FFFF00', '#ADFF2F', '#00FF00', '#2ECC71', '#27AE60',
+            '#00D68F', '#1ABC9C', '#00CED1', '#00BCD4', '#00FFFF',
+            '#00BFFF', '#3498DB', '#2196F3', '#0000FF', '#6C5CE7',
+            '#9B59B6', '#8E44AD', '#663399', '#E91E63', '#FF1493',
+            '#FF69B4', '#FFC0CB', '#FFFFFF', '#BDC3C7', '#95A5A6',
+            '#7F8C8D', '#607D8B', '#34495E', '#2C3E50', '#000000'
+        ];
+
+        // --- Conversion helpers ---
+        function hexToRgb(hex) {
+            hex = hex.replace('#', '');
+            if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+            const r = parseInt(hex.substring(0,2), 16);
+            const g = parseInt(hex.substring(2,4), 16);
+            const b = parseInt(hex.substring(4,6), 16);
+            return { r, g, b };
+        }
+
+        function rgbToHex(r, g, b) {
+            return '#' + [r,g,b].map(x => x.toString(16).padStart(2,'0')).join('').toUpperCase();
+        }
+
+        function rgbToHsl(r, g, b) {
+            r /= 255; g /= 255; b /= 255;
+            const max = Math.max(r,g,b), min = Math.min(r,g,b);
+            let h, s, l = (max+min)/2;
+            if (max === min) {
+                h = s = 0;
+            } else {
+                const d = max - min;
+                s = l > 0.5 ? d/(2-max-min) : d/(max+min);
+                switch(max) {
+                    case r: h = ((g-b)/d + (g < b ? 6 : 0))/6; break;
+                    case g: h = ((b-r)/d + 2)/6; break;
+                    case b: h = ((r-g)/d + 4)/6; break;
+                }
+            }
+            return {
+                h: Math.round(h*360),
+                s: Math.round(s*100),
+                l: Math.round(l*100)
+            };
+        }
+
+        function rgbToHsv(r, g, b) {
+            r /= 255; g /= 255; b /= 255;
+            const max = Math.max(r,g,b), min = Math.min(r,g,b);
+            let h, s, v = max;
+            const d = max - min;
+            s = max === 0 ? 0 : d/max;
+            if (max === min) {
+                h = 0;
+            } else {
+                switch(max) {
+                    case r: h = ((g-b)/d + (g < b ? 6 : 0))/6; break;
+                    case g: h = ((b-r)/d + 2)/6; break;
+                    case b: h = ((r-g)/d + 4)/6; break;
+                }
+            }
+            return {
+                h: Math.round(h*360),
+                s: Math.round(s*100),
+                v: Math.round(v*100)
+            };
+        }
+
+        // --- Update UI ---
+        function updateAll() {
+            const hex = rgbToHex(currentR, currentG, currentB);
+            const hsl = rgbToHsl(currentR, currentG, currentB);
+            const hsv = rgbToHsv(currentR, currentG, currentB);
+            const a = currentAlpha;
+
+            // Preview
+            previewOverlay.style.backgroundColor = `rgba(${currentR},${currentG},${currentB},${a})`;
+            previewHex.textContent = hex;
+
+            // Contrast for preview text
+            const lum = (0.299*currentR + 0.587*currentG + 0.114*currentB) / 255;
+            previewHex.style.color = (lum * a > 0.5) ? '#000' : '#fff';
+
+            // Native picker (no alpha)
+            colorPicker.value = hex.toLowerCase();
+
+            // Values
+            valHex.value = hex;
+            valRgb.value = `rgb(${currentR}, ${currentG}, ${currentB})`;
+            valHsl.value = `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`;
+            valRgba.value = `rgba(${currentR}, ${currentG}, ${currentB}, ${a.toFixed(2).replace(/\.?0+$/, '') || '0'})`;
+            valHsv.value = `hsv(${hsv.h}, ${hsv.s}%, ${hsv.v}%)`;
+
+            // Alpha slider track
+            alphaSlider.style.background = `linear-gradient(to right, rgba(${currentR},${currentG},${currentB},0), rgba(${currentR},${currentG},${currentB},1))`;
+        }
+
+        function setColorFromHex(hex) {
+            const rgb = hexToRgb(hex);
+            if (isNaN(rgb.r) || isNaN(rgb.g) || isNaN(rgb.b)) return false;
+            currentR = rgb.r;
+            currentG = rgb.g;
+            currentB = rgb.b;
+            return true;
+        }
+
+        // --- Events ---
+        colorPicker.addEventListener('input', function() {
+            setColorFromHex(this.value);
+            hexInput.value = rgbToHex(currentR, currentG, currentB);
+            updateAll();
+        });
+
+        colorPicker.addEventListener('change', function() {
+            addToHistory(rgbToHex(currentR, currentG, currentB));
+        });
+
+        hexInput.addEventListener('input', function() {
+            let val = this.value.trim();
+            if (!val.startsWith('#')) val = '#' + val;
+            if (/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(val)) {
+                setColorFromHex(val);
+                updateAll();
+            }
+        });
+
+        hexInput.addEventListener('change', function() {
+            let val = this.value.trim();
+            if (!val.startsWith('#')) val = '#' + val;
+            if (/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(val)) {
+                setColorFromHex(val);
+                hexInput.value = rgbToHex(currentR, currentG, currentB);
+                updateAll();
+                addToHistory(rgbToHex(currentR, currentG, currentB));
+            }
+        });
+
+        alphaSlider.addEventListener('input', function() {
+            currentAlpha = this.value / 100;
+            alphaValueEl.textContent = this.value + '%';
+            updateAll();
+        });
+
+        // --- Copy ---
+        function copyValue(inputId, btn) {
+            const val = document.getElementById(inputId).value;
+            navigator.clipboard.writeText(val).then(() => {
+                const orig = btn.textContent;
+                btn.textContent = 'Đã sao chép!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = orig;
+                    btn.classList.remove('copied');
+                }, 1200);
+            });
+        }
+
+        // --- Palette ---
+        function buildPalette() {
+            paletteGrid.innerHTML = '';
+            predefinedColors.forEach(hex => {
+                const el = document.createElement('div');
+                el.className = 'swatch';
+                el.style.backgroundColor = hex;
+                if (hex === '#FFFFFF' || hex === '#FFFF00' || hex === '#FFEB3B' || hex === '#FFD700' || hex === '#ADFF2F' || hex === '#FFC0CB' || hex === '#00FFFF' || hex === '#00FF00') {
+                    el.style.borderColor = '#555';
+                }
+                el.title = hex;
+                el.addEventListener('click', () => {
+                    setColorFromHex(hex);
+                    hexInput.value = rgbToHex(currentR, currentG, currentB);
+                    updateAll();
+                    addToHistory(hex);
+                });
+                paletteGrid.appendChild(el);
+            });
+        }
+
+        // --- History ---
+        const HISTORY_KEY = 'nqnghia_color_picker_history';
+
+        function loadHistory() {
+            try {
+                return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+            } catch { return []; }
+        }
+
+        function saveHistory(list) {
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+        }
+
+        function addToHistory(hex) {
+            hex = hex.toUpperCase();
+            let list = loadHistory();
+            list = list.filter(c => c !== hex);
+            list.unshift(hex);
+            if (list.length > 20) list = list.slice(0, 20);
+            saveHistory(list);
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const list = loadHistory();
+            historyGrid.innerHTML = '';
+            if (list.length === 0) {
+                historyEmpty.style.display = '';
+                clearHistoryBtn.style.display = 'none';
+                return;
+            }
+            historyEmpty.style.display = 'none';
+            clearHistoryBtn.style.display = '';
+            list.forEach(hex => {
+                const el = document.createElement('div');
+                el.className = 'swatch';
+                el.style.backgroundColor = hex;
+                el.title = hex;
+                const lum = (() => {
+                    const rgb = hexToRgb(hex);
+                    return (0.299*rgb.r + 0.587*rgb.g + 0.114*rgb.b) / 255;
+                })();
+                if (lum > 0.85) el.style.borderColor = '#555';
+                el.addEventListener('click', () => {
+                    setColorFromHex(hex);
+                    hexInput.value = rgbToHex(currentR, currentG, currentB);
+                    updateAll();
+                });
+                historyGrid.appendChild(el);
+            });
+        }
+
+        function clearHistory() {
+            localStorage.removeItem(HISTORY_KEY);
+            renderHistory();
+        }
+
+        // --- Init ---
+        buildPalette();
+        renderHistory();
+        updateAll();
+    </script>
+</body>
+</html>

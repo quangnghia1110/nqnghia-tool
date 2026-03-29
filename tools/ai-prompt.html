@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Prompt Generator - NQNghia Tools</title>
+    <link rel="stylesheet" href="../style.css">
+    <style>
+        :root {
+            --bg: #0f0f13;
+            --bg-card: #1a1a24;
+            --bg-input: #12121a;
+            --border: #2a2a3a;
+            --text: #e4e4ed;
+            --text-dim: #8888a0;
+            --accent: #6c5ce7;
+            --accent-hover: #7f71ed;
+            --success: #00d68f;
+            --error: #ff6b6b;
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+
+        .container {
+            max-width: 800px;
+        }
+
+        /* ===== Pyramid Diagram ===== */
+        .pyramid-wrapper {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 32px;
+        }
+
+        .pyramid {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            max-height: 200px;
+        }
+
+        .pyramid-layer {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 28px;
+            border-radius: 4px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: transform 0.2s;
+        }
+
+        .pyramid-layer:hover {
+            transform: scaleX(1.05);
+        }
+
+        .pyramid-layer.l-role    { width: 100px; background: #FF6B6B; }
+        .pyramid-layer.l-context { width: 140px; background: #FFB347; }
+        .pyramid-layer.l-example { width: 180px; background: #87CEEB; color: #1a1a24; }
+        .pyramid-layer.l-style   { width: 220px; background: #98D8C8; color: #1a1a24; }
+        .pyramid-layer.l-format  { width: 260px; background: #DDA0DD; }
+        .pyramid-layer.l-goal    { width: 300px; background: #F0E68C; color: #1a1a24; }
+
+        /* ===== Step Cards ===== */
+        .step-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .step-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .step-badge.role    { background: #FF6B6B; }
+        .step-badge.context { background: #FFB347; color: #1a1a24; }
+        .step-badge.example { background: #87CEEB; color: #1a1a24; }
+        .step-badge.style   { background: #98D8C8; color: #1a1a24; }
+        .step-badge.format  { background: #DDA0DD; color: #1a1a24; }
+        .step-badge.goal    { background: #F0E68C; color: #1a1a24; }
+
+        .step-explain {
+            font-size: 0.82rem;
+            color: var(--text-dim);
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+
+        .example-line {
+            font-size: 0.78rem;
+            line-height: 1.6;
+            margin-bottom: 4px;
+        }
+
+        .example-bad {
+            color: var(--error);
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+
+        .example-good {
+            color: var(--success);
+        }
+
+        /* ===== Form Fields ===== */
+        .field-textarea,
+        .field-input,
+        .field-select {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text);
+            font-size: 0.88rem;
+            font-family: inherit;
+            transition: border-color 0.2s;
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        .field-textarea:focus,
+        .field-input:focus,
+        .field-select:focus {
+            border-color: var(--accent);
+        }
+
+        .field-textarea {
+            resize: vertical;
+            min-height: 70px;
+        }
+
+        .field-select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238888a0' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+        }
+
+        .field-select option {
+            background: var(--bg-card);
+            color: var(--text);
+        }
+
+        .style-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .style-row .field-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+
+        .format-custom-wrap {
+            margin-top: 10px;
+            display: none;
+        }
+
+        .format-custom-wrap.visible {
+            display: block;
+        }
+
+        /* ===== Generate Button ===== */
+        .btn-generate {
+            width: 100%;
+            padding: 14px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            margin-top: 8px;
+            margin-bottom: 24px;
+        }
+
+        .btn-generate:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-generate:active {
+            transform: scale(0.98);
+        }
+
+        /* ===== Output Section ===== */
+        .output-section {
+            display: none;
+            margin-bottom: 28px;
+        }
+
+        .output-section.visible {
+            display: block;
+        }
+
+        .output-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+        }
+
+        .output-card h3 {
+            font-size: 1rem;
+            margin-bottom: 14px;
+            color: var(--text);
+        }
+
+        .output-box {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            font-size: 0.9rem;
+            line-height: 1.75;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: var(--text);
+            min-height: 80px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 10px 16px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-card);
+            color: var(--text);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            border-color: var(--accent);
+        }
+
+        .action-btn.copy-btn {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .action-btn.copy-btn:hover {
+            background: var(--accent-hover);
+        }
+
+        .action-btn.save-btn {
+            background: rgba(0, 214, 143, 0.1);
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .action-btn.save-btn:hover {
+            background: rgba(0, 214, 143, 0.2);
+        }
+
+        /* ===== Saved Prompts ===== */
+        .saved-section {
+            margin-top: 8px;
+        }
+
+        .saved-section h3 {
+            font-size: 1rem;
+            margin-bottom: 12px;
+            color: var(--text);
+        }
+
+        .saved-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .saved-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            transition: border-color 0.2s;
+        }
+
+        .saved-item:hover {
+            border-color: var(--accent);
+        }
+
+        .saved-item .content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .saved-item .preview {
+            font-size: 0.82rem;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .saved-item .time {
+            font-size: 0.72rem;
+            color: var(--text-dim);
+            margin-top: 3px;
+        }
+
+        .saved-item-actions {
+            display: flex;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .saved-item-actions button {
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            font-size: 0.85rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .saved-item-actions .copy-saved:hover {
+            color: var(--accent);
+            background: rgba(108, 92, 231, 0.1);
+        }
+
+        .saved-item-actions .delete-saved:hover {
+            color: var(--error);
+            background: rgba(255, 107, 107, 0.1);
+        }
+
+        .empty-state {
+            text-align: center;
+            color: var(--text-dim);
+            font-size: 0.85rem;
+            padding: 24px;
+        }
+
+        /* ===== Toast ===== */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--success);
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            font-weight: 600;
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 999;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 600px) {
+            .style-row {
+                grid-template-columns: 1fr;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .pyramid-layer.l-role    { width: 70px; }
+            .pyramid-layer.l-context { width: 100px; }
+            .pyramid-layer.l-example { width: 130px; }
+            .pyramid-layer.l-style   { width: 160px; }
+            .pyramid-layer.l-format  { width: 190px; }
+            .pyramid-layer.l-goal    { width: 220px; }
+
+            .step-card {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-nav">&larr; Quay lại</a>
+
+        <header>
+            <h1>AI Prompt Generator</h1>
+            <p class="subtitle">6 bước viết PROMPT đạt độ chính xác 99% theo mô hình kim tự tháp</p>
+        </header>
+
+        <!-- Pyramid Diagram -->
+        <div class="pyramid-wrapper">
+            <div class="pyramid">
+                <div class="pyramid-layer l-role">Role</div>
+                <div class="pyramid-layer l-context">Context</div>
+                <div class="pyramid-layer l-example">Examples</div>
+                <div class="pyramid-layer l-style">Style</div>
+                <div class="pyramid-layer l-format">Format</div>
+                <div class="pyramid-layer l-goal">Goal</div>
+            </div>
+        </div>
+
+        <!-- Step 1: Role -->
+        <div class="step-card">
+            <div class="step-header">
+                <span class="step-badge role">1. Role (Vai trò)</span>
+            </div>
+            <div class="step-explain">
+                Giao cho AI một vai trò cụ thể. Ưu tiên theo mô hình: <strong>[Trình độ + Lĩnh vực + Mục tiêu]</strong>
+            </div>
+            <div class="example-line">
+                <span class="example-bad">"Là marketer" &#10060;</span>
+            </div>
+            <div class="example-line" style="margin-bottom:12px;">
+                <span class="example-good">"Bạn là chuyên gia content marketing 10 năm, chuyên viết nội dung chuyển đổi cao trên Instagram." &#9989;</span>
+            </div>
+            <textarea class="field-textarea" id="inputRole" rows="2" placeholder="Ví dụ: Bạn là một chuyên gia viết content Instagram 10 năm kinh nghiệm, từng tạo ra hàng chục bài post viral."></textarea>
+        </div>
+
+        <!-- Step 2: Context -->
+        <div class="step-card">
+            <div class="step-header">
+                <span class="step-badge context">2. Context (Bối cảnh)</span>
+            </div>
+            <div class="step-explain">
+                Luôn nêu rõ bạn định dùng đầu ra để làm gì, vì sao điều này quan trọng, người nhận là ai. <strong>Đối tượng + Kênh + Mục tiêu cụ thể.</strong>
+            </div>
+            <textarea class="field-textarea" id="inputContext" rows="2" placeholder="Ví dụ: Tôi đang xây thương hiệu cá nhân trong lĩnh vực coaching giúp Gen Z xây dựng sự nghiệp online."></textarea>
+        </div>
+
+        <!-- Step 3: Example -->
+        <div class="step-card">
+            <div class="step-header">
+                <span class="step-badge example">3. Example (Ví dụ mẫu)</span>
+            </div>
+            <div class="step-explain">
+                Luôn đưa từ 1-2 ví dụ nếu bạn muốn đầu ra chất lượng cao. Có thể thêm <strong>"Format mẫu giống như..."</strong> để giúp AI hiểu hình mẫu.
+            </div>
+            <textarea class="field-textarea" id="inputExample" rows="2" placeholder="Ví dụ: Dẫn dắt giống các bài @thefutur hoặc @stephenstephan"></textarea>
+        </div>
+
+        <!-- Step 4: Style -->
+        <div class="step-card">
+            <div class="step-header">
+                <span class="step-badge style">4. Style (Phong cách)</span>
+            </div>
+            <div class="step-explain">
+                Đừng chỉ nói "viết thêm" — hãy cụ thể hoá. Kết hợp 2 yếu tố: <strong>Giọng điệu (tone) + Kỹ thuật viết (style).</strong>
+            </div>
+            <div class="style-row">
+                <div class="field-group">
+                    <label>Giọng điệu (Tone)</label>
+                    <select class="field-select" id="inputTone">
+                        <option value="Chuyên nghiệp">Chuyên nghiệp</option>
+                        <option value="Thân thiện">Thân thiện</option>
+                        <option value="Hài hước">Hài hước</option>
+                        <option value="Truyền cảm hứng">Truyền cảm hứng</option>
+                        <option value="Gần gũi" selected>Gần gũi</option>
+                        <option value="Nghiêm túc">Nghiêm túc</option>
+                        <option value="Storytelling">Storytelling</option>
+                    </select>
+                </div>
+                <div class="field-group">
+                    <label>Kỹ thuật viết</label>
+                    <select class="field-select" id="inputTechnique">
+                        <option value="Kể chuyện (storytelling)" selected>Kể chuyện (storytelling)</option>
+                        <option value="Liệt kê (listicle)">Liệt kê (listicle)</option>
+                        <option value="So sánh">So sánh</option>
+                        <option value="Hỏi-đáp">Hỏi-đáp</option>
+                        <option value="Step-by-step">Step-by-step</option>
+                        <option value="Hook + CTA">Hook + CTA</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 5: Format -->
+        <div class="step-card">
+            <div class="step-header">
+                <span class="step-badge format">5. Format (Định dạng)</span>
+            </div>
+            <div class="step-explain">
+                Chỉ định rõ định dạng đầu ra bạn mong muốn.
+            </div>
+            <select class="field-select" id="inputFormat" onchange="toggleCustomFormat()">
+                <option value="Bài viết dài">Bài viết dài</option>
+                <option value="Carousel/Slide">Carousel/Slide</option>
+                <option value="Danh sách bullet points">Danh sách bullet points</option>
+                <option value="Bảng so sánh">Bảng so sánh</option>
+                <option value="Email">Email</option>
+                <option value="Script video">Script video</option>
+                <option value="Code">Code</option>
+                <option value="Tweet/Thread">Tweet/Thread</option>
+                <option value="custom">Custom (tuỳ chỉnh)</option>
+            </select>
+            <div class="format-custom-wrap" id="formatCustomWrap">
+                <input class="field-input" type="text" id="inputFormatCustom" placeholder="Nhập định dạng bạn muốn...">
+            </div>
+        </div>
+
+        <!-- Step 6: Goal -->
+        <div class="step-card">
+            <div class="step-header">
+                <span class="step-badge goal">6. Goal (Mục tiêu)</span>
+            </div>
+            <div class="step-explain">
+                Làm rõ mong muốn đạt được: <strong>Tăng [chỉ số nào], Gây [tác động gì], Đạt [kết quả nào], Giúp [đối tượng] hiểu gì/làm gì.</strong>
+            </div>
+            <textarea class="field-textarea" id="inputGoal" rows="2" placeholder="Ví dụ: Mục tiêu: Tăng lượt lưu và tạo kết nối sâu với người xem."></textarea>
+        </div>
+
+        <!-- Generate Button -->
+        <button class="btn-generate" onclick="generatePrompt()">Tạo Prompt</button>
+
+        <!-- Output Section -->
+        <div class="output-section" id="outputSection">
+            <div class="output-card">
+                <h3>Prompt đã tạo</h3>
+                <div class="output-box" id="outputBox"></div>
+                <div class="action-buttons">
+                    <button class="action-btn copy-btn" onclick="copyPrompt()">Sao chép</button>
+                    <button class="action-btn" onclick="resetAll()">Tạo lại</button>
+                    <button class="action-btn save-btn" onclick="savePrompt()">Lưu</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Saved Prompts -->
+        <div class="saved-section">
+            <h3>Prompt đã lưu</h3>
+            <div class="saved-list" id="savedList">
+                <div class="empty-state">Chưa có prompt nào được lưu</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let generatedPrompt = '';
+
+        function toggleCustomFormat() {
+            const sel = document.getElementById('inputFormat');
+            const wrap = document.getElementById('formatCustomWrap');
+            if (sel.value === 'custom') {
+                wrap.classList.add('visible');
+                document.getElementById('inputFormatCustom').focus();
+            } else {
+                wrap.classList.remove('visible');
+            }
+        }
+
+        function getFormatValue() {
+            const sel = document.getElementById('inputFormat');
+            if (sel.value === 'custom') {
+                return document.getElementById('inputFormatCustom').value.trim() || '';
+            }
+            return sel.value;
+        }
+
+        function generatePrompt() {
+            const role = document.getElementById('inputRole').value.trim();
+            const context = document.getElementById('inputContext').value.trim();
+            const example = document.getElementById('inputExample').value.trim();
+            const tone = document.getElementById('inputTone').value;
+            const technique = document.getElementById('inputTechnique').value;
+            const format = getFormatValue();
+            const goal = document.getElementById('inputGoal').value.trim();
+
+            if (!role && !context && !goal) {
+                showToast('Vui lòng điền ít nhất vai trò, bối cảnh hoặc mục tiêu.', true);
+                return;
+            }
+
+            // Build a flowing paragraph
+            const parts = [];
+
+            if (role) {
+                // If user already starts with "Bạn là", use as-is
+                if (/^bạn là/i.test(role)) {
+                    parts.push(role.replace(/\.?\s*$/, '.'));
+                } else {
+                    parts.push('Bạn là ' + role.replace(/\.?\s*$/, '.'));
+                }
+            }
+
+            if (context) {
+                parts.push(context.replace(/\.?\s*$/, '.'));
+            }
+
+            if (format) {
+                parts.push('Hãy viết một ' + format.toLowerCase().replace(/\.?\s*$/, '.'));
+            }
+
+            if (example) {
+                const styleStr = technique.toLowerCase() + ' ' + tone.toLowerCase();
+                parts.push(example.replace(/\.?\s*$/, ',') + ' sử dụng phong cách ' + styleStr + ', có insight thực tế đời sống.');
+            } else {
+                parts.push('Sử dụng phong cách ' + technique.toLowerCase() + ' ' + tone.toLowerCase() + '.');
+            }
+
+            if (goal) {
+                parts.push(goal.replace(/\.?\s*$/, '.'));
+            }
+
+            generatedPrompt = parts.join(' ');
+            document.getElementById('outputBox').textContent = generatedPrompt;
+            document.getElementById('outputSection').classList.add('visible');
+            document.getElementById('outputSection').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function copyPrompt() {
+            if (!generatedPrompt) return;
+            navigator.clipboard.writeText(generatedPrompt).then(() => {
+                showToast('Đã sao chép prompt!');
+            }).catch(() => {
+                fallbackCopy(generatedPrompt);
+                showToast('Đã sao chép prompt!');
+            });
+        }
+
+        function fallbackCopy(text) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+        }
+
+        function resetAll() {
+            generatedPrompt = '';
+            document.getElementById('inputRole').value = '';
+            document.getElementById('inputContext').value = '';
+            document.getElementById('inputExample').value = '';
+            document.getElementById('inputTone').value = 'Gần gũi';
+            document.getElementById('inputTechnique').value = 'Kể chuyện (storytelling)';
+            document.getElementById('inputFormat').value = 'Bài viết dài';
+            document.getElementById('inputFormatCustom').value = '';
+            document.getElementById('formatCustomWrap').classList.remove('visible');
+            document.getElementById('inputGoal').value = '';
+            document.getElementById('outputSection').classList.remove('visible');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function savePrompt() {
+            if (!generatedPrompt) return;
+
+            const saved = JSON.parse(localStorage.getItem('ai_prompt_6steps') || '[]');
+            const item = {
+                id: Date.now(),
+                prompt: generatedPrompt,
+                timestamp: new Date().toISOString()
+            };
+
+            saved.unshift(item);
+            if (saved.length > 20) saved.length = 20;
+            localStorage.setItem('ai_prompt_6steps', JSON.stringify(saved));
+
+            showToast('Đã lưu prompt!');
+            renderSaved();
+        }
+
+        function deleteSaved(id) {
+            const saved = JSON.parse(localStorage.getItem('ai_prompt_6steps') || '[]');
+            const filtered = saved.filter(s => s.id !== id);
+            localStorage.setItem('ai_prompt_6steps', JSON.stringify(filtered));
+            renderSaved();
+            showToast('Đã xoá prompt');
+        }
+
+        function copySavedItem(id) {
+            const saved = JSON.parse(localStorage.getItem('ai_prompt_6steps') || '[]');
+            const item = saved.find(s => s.id === id);
+            if (!item) return;
+            navigator.clipboard.writeText(item.prompt).then(() => {
+                showToast('Đã sao chép prompt!');
+            }).catch(() => {
+                fallbackCopy(item.prompt);
+                showToast('Đã sao chép prompt!');
+            });
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function renderSaved() {
+            const saved = JSON.parse(localStorage.getItem('ai_prompt_6steps') || '[]');
+            const list = document.getElementById('savedList');
+
+            if (saved.length === 0) {
+                list.innerHTML = '<div class="empty-state">Chưa có prompt nào được lưu</div>';
+                return;
+            }
+
+            list.innerHTML = saved.map(item => {
+                const preview = item.prompt.length > 100 ? item.prompt.substring(0, 100) + '...' : item.prompt;
+                const date = new Date(item.timestamp);
+                const timeStr = date.toLocaleDateString('vi-VN') + ' ' + date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+                return `
+                    <div class="saved-item">
+                        <div class="content">
+                            <div class="preview">${escapeHtml(preview)}</div>
+                            <div class="time">${timeStr}</div>
+                        </div>
+                        <div class="saved-item-actions">
+                            <button class="copy-saved" onclick="copySavedItem(${item.id})" title="Sao chép">&#128203;</button>
+                            <button class="delete-saved" onclick="deleteSaved(${item.id})" title="Xoá">&#10005;</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.background = isError ? 'var(--error)' : 'var(--success)';
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        // Init
+        renderSaved();
+    </script>
+</body>
+</html>

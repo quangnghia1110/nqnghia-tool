@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code to Image - NQNghia Tools</title>
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/styles/atom-one-dark.min.css" id="hljs-theme">
+    <style>
+        .container {
+            max-width: 900px;
+        }
+
+        /* ===== Export buttons (top-right floating) ===== */
+        .export-float {
+            position: fixed;
+            top: 20px;
+            right: 24px;
+            display: flex;
+            gap: 8px;
+            z-index: 100;
+        }
+
+        .export-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1.5px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            backdrop-filter: blur(12px);
+        }
+
+        .export-btn.primary {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+
+        .export-btn.primary:hover {
+            background: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+
+        .export-btn.outline {
+            background: rgba(26, 26, 36, 0.85);
+            color: var(--text);
+            border-color: var(--border);
+        }
+
+        .export-btn.outline:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* ===== Page header ===== */
+        .page-header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .page-header h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .page-header p {
+            color: var(--text-dim);
+            font-size: 14px;
+        }
+
+        /* ===== Preview area (the capture target) ===== */
+        .preview-wrapper {
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+        }
+
+        #capture-area {
+            display: block;
+        }
+
+        .preview-bg {
+            padding: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: padding 0.3s ease;
+            min-height: 260px;
+        }
+
+        /* Gradients */
+        .grad-breeze   { background: linear-gradient(135deg, #d299c2, #a8c0ff); }
+        .grad-midnight { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .grad-sunset   { background: linear-gradient(135deg, #f093fb, #f5576c); }
+        .grad-forest   { background: linear-gradient(135deg, #11998e, #38ef7d); }
+        .grad-ocean    { background: linear-gradient(135deg, #2193b0, #6dd5ed); }
+        .grad-candy    { background: linear-gradient(135deg, #ff9a9e, #fecfef); }
+        .grad-none {
+            background: transparent;
+            background-image:
+                linear-gradient(45deg, #222 25%, transparent 25%),
+                linear-gradient(-45deg, #222 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #222 75%),
+                linear-gradient(-45deg, transparent 75%, #222 75%);
+            background-size: 16px 16px;
+            background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+        }
+
+        /* ===== macOS window frame ===== */
+        .code-window {
+            background: #1e1e2e;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 68px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.05);
+            width: 100%;
+            max-width: 720px;
+            min-width: 320px;
+        }
+
+        .code-window.light-mode {
+            background: #fafafa;
+            box-shadow: 0 20px 68px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,0,0,0.08);
+        }
+
+        .window-titlebar {
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            position: relative;
+            user-select: none;
+        }
+
+        .window-dots {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+            z-index: 1;
+        }
+
+        .window-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .window-dot.red    { background: #ff5f56; }
+        .window-dot.yellow { background: #ffbd2e; }
+        .window-dot.green  { background: #27c93f; }
+
+        .window-title {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 13px;
+            color: #666;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            white-space: nowrap;
+            cursor: text;
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid transparent;
+            background: transparent;
+            outline: none;
+            text-align: center;
+            min-width: 80px;
+        }
+
+        .window-title:hover {
+            border-color: rgba(255,255,255,0.1);
+        }
+
+        .window-title:focus {
+            border-color: rgba(108, 92, 231, 0.5);
+            background: rgba(255,255,255,0.04);
+        }
+
+        .code-window.light-mode .window-title {
+            color: #999;
+        }
+
+        .code-window.light-mode .window-title:hover {
+            border-color: rgba(0,0,0,0.1);
+        }
+
+        .code-window.light-mode .window-title:focus {
+            background: rgba(0,0,0,0.03);
+        }
+
+        /* ===== Code body: textarea overlay approach ===== */
+        .window-body {
+            position: relative;
+            padding: 0 20px 20px;
+            display: flex;
+        }
+
+        .line-numbers {
+            display: none;
+            text-align: right;
+            padding-right: 16px;
+            margin-right: 16px;
+            border-right: 1px solid rgba(136,136,160,0.15);
+            color: rgba(136,136,160,0.35);
+            user-select: none;
+            font-family: 'Fira Code', 'Cascadia Code', Consolas, 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.7;
+            flex-shrink: 0;
+            white-space: pre;
+        }
+
+        .line-numbers.visible {
+            display: block;
+        }
+
+        .code-window.light-mode .line-numbers {
+            color: rgba(0,0,0,0.18);
+            border-right-color: rgba(0,0,0,0.08);
+        }
+
+        .code-layer {
+            position: relative;
+            flex: 1;
+            min-height: 120px;
+            overflow: hidden;
+        }
+
+        .code-layer pre {
+            margin: 0;
+            padding: 0;
+        }
+
+        .code-layer code {
+            font-family: 'Fira Code', 'Cascadia Code', Consolas, 'Courier New', monospace !important;
+            font-size: 14px;
+            line-height: 1.7;
+            background: transparent !important;
+            padding: 0 !important;
+            display: block;
+            white-space: pre;
+            word-wrap: normal;
+            overflow-x: auto;
+        }
+
+        .code-textarea {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            font-family: 'Fira Code', 'Cascadia Code', Consolas, 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.7;
+            color: transparent;
+            caret-color: #a9b1d6;
+            background: transparent;
+            border: none;
+            outline: none;
+            resize: none;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+            white-space: pre;
+            word-wrap: normal;
+            z-index: 2;
+            tab-size: 4;
+            -moz-tab-size: 4;
+        }
+
+        .code-window.light-mode .code-textarea {
+            caret-color: #383a42;
+        }
+
+        /* Light theme syntax */
+        .code-window.light-mode .hljs {
+            color: #383a42;
+            background: transparent;
+        }
+        .code-window.light-mode .hljs-comment,
+        .code-window.light-mode .hljs-quote { color: #a0a1a7; font-style: italic; }
+        .code-window.light-mode .hljs-keyword,
+        .code-window.light-mode .hljs-selector-tag { color: #a626a4; }
+        .code-window.light-mode .hljs-string,
+        .code-window.light-mode .hljs-addition { color: #50a14f; }
+        .code-window.light-mode .hljs-number { color: #986801; }
+        .code-window.light-mode .hljs-built_in { color: #c18401; }
+        .code-window.light-mode .hljs-function .hljs-title,
+        .code-window.light-mode .hljs-title.function_ { color: #4078f2; }
+        .code-window.light-mode .hljs-attr,
+        .code-window.light-mode .hljs-variable { color: #e45649; }
+        .code-window.light-mode .hljs-type,
+        .code-window.light-mode .hljs-class .hljs-title { color: #c18401; }
+
+        /* ===== Options bar ===== */
+        .options-bar {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: flex-end;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .opt-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .opt-label {
+            font-size: 11px;
+            color: var(--text-dim);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
+        .opt-select {
+            background: var(--bg-input);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 7px 10px;
+            font-size: 13px;
+            outline: none;
+            cursor: pointer;
+            min-width: 120px;
+        }
+
+        .opt-select:focus {
+            border-color: var(--accent);
+        }
+
+        /* Toggle switch */
+        .toggle {
+            position: relative;
+            width: 40px;
+            height: 22px;
+            display: inline-block;
+        }
+
+        .toggle input {
+            display: none;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            inset: 0;
+            background: #2a2a3a;
+            border-radius: 11px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .toggle-slider::before {
+            content: "";
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            left: 3px;
+            bottom: 3px;
+            background: #fff;
+            border-radius: 50%;
+            transition: 0.2s;
+        }
+
+        .toggle input:checked + .toggle-slider {
+            background: #6c5ce7;
+        }
+
+        .toggle input:checked + .toggle-slider::before {
+            transform: translateX(18px);
+        }
+
+        .toggle-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toggle-text {
+            font-size: 13px;
+            color: var(--text);
+            white-space: nowrap;
+        }
+
+        /* Padding selector */
+        .pad-group {
+            display: flex;
+            gap: 4px;
+        }
+
+        .pad-btn {
+            padding: 5px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--bg-input);
+            color: var(--text-dim);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .pad-btn:hover {
+            border-color: var(--accent);
+            color: var(--text);
+        }
+
+        .pad-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        /* Divider */
+        .opt-divider {
+            width: 1px;
+            height: 32px;
+            background: var(--border);
+            align-self: flex-end;
+            margin-bottom: 2px;
+            flex-shrink: 0;
+        }
+
+        /* ===== Toast ===== */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--success);
+            color: #fff;
+            padding: 10px 22px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 13px;
+            z-index: 9999;
+            opacity: 0;
+            transition: 0.3s;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.error {
+            background: var(--error);
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 720px) {
+            .export-float {
+                position: static;
+                justify-content: center;
+                margin-bottom: 16px;
+            }
+
+            .options-bar {
+                gap: 14px;
+            }
+
+            .opt-divider {
+                display: none;
+            }
+
+            .preview-bg {
+                padding: 24px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-nav">&larr; Quay lại</a>
+
+        <!-- Export buttons (floating top-right) -->
+        <div class="export-float">
+            <button class="export-btn primary" onclick="savePNG()">Lưu PNG</button>
+            <button class="export-btn outline" onclick="saveSVG()">Lưu SVG</button>
+            <button class="export-btn outline" onclick="copyImage()">Sao chép</button>
+        </div>
+
+        <!-- Header -->
+        <div class="page-header">
+            <h1>Code to Image</h1>
+            <p>Tạo hình ảnh đẹp từ đoạn mã nguồn của bạn</p>
+        </div>
+
+        <!-- Preview (main area) -->
+        <div class="preview-wrapper">
+            <div id="capture-area">
+                <div class="preview-bg grad-breeze" id="previewBg">
+                    <div class="code-window" id="codeWindow">
+                        <div class="window-titlebar">
+                            <div class="window-dots">
+                                <span class="window-dot red"></span>
+                                <span class="window-dot yellow"></span>
+                                <span class="window-dot green"></span>
+                            </div>
+                            <input type="text" class="window-title" id="windowTitle" value="Untitled-1" spellcheck="false">
+                        </div>
+                        <div class="window-body">
+                            <div class="line-numbers" id="lineNumbers"></div>
+                            <div class="code-layer">
+                                <pre><code class="hljs" id="codeDisplay"></code></pre>
+                                <textarea class="code-textarea" id="codeInput" spellcheck="false">function greet(name) {
+    const message = `Xin chào, ${name}!`;
+    console.log(message);
+    return message;
+}
+
+greet("NQNghia");</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Options bar -->
+        <div class="options-bar">
+            <div class="opt-group">
+                <span class="opt-label">Chủ đề</span>
+                <select class="opt-select" id="themeSelect">
+                    <option value="breeze">Breeze</option>
+                    <option value="midnight">Midnight</option>
+                    <option value="sunset">Sunset</option>
+                    <option value="forest">Forest</option>
+                    <option value="ocean">Ocean</option>
+                    <option value="candy">Candy</option>
+                    <option value="none">Không có</option>
+                </select>
+            </div>
+
+            <div class="opt-divider"></div>
+
+            <div class="opt-group">
+                <span class="opt-label">Nền</span>
+                <div class="toggle-item">
+                    <label class="toggle">
+                        <input type="checkbox" id="bgToggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="opt-group">
+                <span class="opt-label">Chế độ tối</span>
+                <div class="toggle-item">
+                    <label class="toggle">
+                        <input type="checkbox" id="darkToggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="opt-group">
+                <span class="opt-label">Số dòng</span>
+                <div class="toggle-item">
+                    <label class="toggle">
+                        <input type="checkbox" id="lineNumToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="opt-divider"></div>
+
+            <div class="opt-group">
+                <span class="opt-label">Khoảng đệm</span>
+                <div class="pad-group">
+                    <button class="pad-btn" data-pad="16">16</button>
+                    <button class="pad-btn" data-pad="32">32</button>
+                    <button class="pad-btn active" data-pad="64">64</button>
+                    <button class="pad-btn" data-pad="128">128</button>
+                </div>
+            </div>
+
+            <div class="opt-divider"></div>
+
+            <div class="opt-group">
+                <span class="opt-label">Ngôn ngữ</span>
+                <select class="opt-select" id="langSelect">
+                    <option value="">Tự động nhận diện</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="typescript">TypeScript</option>
+                    <option value="python">Python</option>
+                    <option value="java">Java</option>
+                    <option value="cpp">C++</option>
+                    <option value="csharp">C#</option>
+                    <option value="go">Go</option>
+                    <option value="rust">Rust</option>
+                    <option value="swift">Swift</option>
+                    <option value="ruby">Ruby</option>
+                    <option value="php">PHP</option>
+                    <option value="html">HTML</option>
+                    <option value="css">CSS</option>
+                    <option value="sql">SQL</option>
+                    <option value="bash">Bash</option>
+                    <option value="json">JSON</option>
+                    <option value="yaml">YAML</option>
+                    <option value="markdown">Markdown</option>
+                    <option value="xml">XML</option>
+                    <option value="kotlin">Kotlin</option>
+                    <option value="dart">Dart</option>
+                    <option value="lua">Lua</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1/dist/html2canvas.min.js"></script>
+    <script>
+        const codeInput    = document.getElementById('codeInput');
+        const codeDisplay  = document.getElementById('codeDisplay');
+        const previewBg    = document.getElementById('previewBg');
+        const codeWindow   = document.getElementById('codeWindow');
+        const windowTitle  = document.getElementById('windowTitle');
+        const lineNumbers  = document.getElementById('lineNumbers');
+        const themeSelect  = document.getElementById('themeSelect');
+        const langSelect   = document.getElementById('langSelect');
+        const bgToggle     = document.getElementById('bgToggle');
+        const darkToggle   = document.getElementById('darkToggle');
+        const lineNumToggle= document.getElementById('lineNumToggle');
+        const padBtns      = document.querySelectorAll('.pad-btn');
+        const toast        = document.getElementById('toast');
+
+        let currentPadding = 64;
+
+        /* ===== Sync textarea height to content ===== */
+        function syncHeight() {
+            codeInput.style.height = 'auto';
+            const h = Math.max(codeInput.scrollHeight, 120);
+            codeInput.style.height = h + 'px';
+        }
+
+        /* ===== Update the highlighted preview ===== */
+        function updatePreview() {
+            const code = codeInput.value || ' ';
+            const lang = langSelect.value;
+
+            // Syntax highlight
+            let highlighted;
+            if (lang) {
+                try {
+                    highlighted = hljs.highlight(code, { language: lang }).value;
+                } catch {
+                    highlighted = hljs.highlightAuto(code).value;
+                }
+            } else {
+                highlighted = hljs.highlightAuto(code).value;
+            }
+            codeDisplay.innerHTML = highlighted;
+
+            // Line numbers
+            const lines = code.split('\n');
+            lineNumbers.textContent = lines.map((_, i) => i + 1).join('\n');
+
+            // Gradient
+            previewBg.className = 'preview-bg';
+            if (bgToggle.checked) {
+                previewBg.classList.add('grad-' + themeSelect.value);
+                previewBg.style.background = '';
+            } else {
+                previewBg.style.background = 'transparent';
+            }
+
+            // Dark / light
+            codeWindow.classList.toggle('light-mode', !darkToggle.checked);
+
+            // Line numbers visibility
+            lineNumbers.classList.toggle('visible', lineNumToggle.checked);
+
+            // Padding
+            previewBg.style.padding = currentPadding + 'px';
+
+            // Sync textarea size
+            syncHeight();
+        }
+
+        /* ===== Event listeners ===== */
+        codeInput.addEventListener('input', updatePreview);
+        codeInput.addEventListener('scroll', () => {
+            // Keep code display in sync with textarea scroll
+            codeDisplay.parentElement.scrollTop = codeInput.scrollTop;
+            codeDisplay.parentElement.scrollLeft = codeInput.scrollLeft;
+        });
+
+        themeSelect.addEventListener('change', updatePreview);
+        langSelect.addEventListener('change', updatePreview);
+        bgToggle.addEventListener('change', updatePreview);
+        darkToggle.addEventListener('change', updatePreview);
+        lineNumToggle.addEventListener('change', updatePreview);
+
+        // Tab support
+        codeInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const s = this.selectionStart;
+                const end = this.selectionEnd;
+                this.value = this.value.substring(0, s) + '    ' + this.value.substring(end);
+                this.selectionStart = this.selectionEnd = s + 4;
+                updatePreview();
+            }
+        });
+
+        // Padding buttons
+        padBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                padBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentPadding = parseInt(btn.dataset.pad);
+                updatePreview();
+            });
+        });
+
+        /* ===== Toast ===== */
+        function showToast(msg, isError) {
+            toast.textContent = msg;
+            toast.className = 'toast' + (isError ? ' error' : '');
+            requestAnimationFrame(() => toast.classList.add('show'));
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        /* ===== Capture ===== */
+        async function captureCanvas() {
+            const area = document.getElementById('capture-area');
+            // Temporarily hide the textarea caret & selection for clean capture
+            codeInput.style.caretColor = 'transparent';
+            codeInput.blur();
+            const canvas = await html2canvas(area, {
+                backgroundColor: (!bgToggle.checked || themeSelect.value === 'none') ? null : undefined,
+                scale: 2,
+                useCORS: true,
+                logging: false
+            });
+            codeInput.style.caretColor = '';
+            return canvas;
+        }
+
+        /* ===== Save PNG ===== */
+        async function savePNG() {
+            try {
+                const canvas = await captureCanvas();
+                canvas.toBlob(async (blob) => {
+                    if (window.showSaveFilePicker) {
+                        try {
+                            const handle = await window.showSaveFilePicker({
+                                suggestedName: 'code-image.png',
+                                types: [{ description: 'PNG Image', accept: { 'image/png': ['.png'] } }]
+                            });
+                            const w = await handle.createWritable();
+                            await w.write(blob);
+                            await w.close();
+                            showToast('Đã lưu ảnh PNG thành công!');
+                        } catch (err) {
+                            if (err.name !== 'AbortError') fallbackDownload(blob, 'code-image.png');
+                        }
+                    } else {
+                        fallbackDownload(blob, 'code-image.png');
+                    }
+                }, 'image/png');
+            } catch (err) {
+                showToast('Lỗi khi tạo ảnh: ' + err.message, true);
+            }
+        }
+
+        function fallbackDownload(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Đã tải ảnh xuống!');
+        }
+
+        /* ===== Save SVG ===== */
+        async function saveSVG() {
+            try {
+                const canvas = await captureCanvas();
+                const dataUrl = canvas.toDataURL('image/png');
+                const w = canvas.width, h = canvas.height;
+                const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w/2}" height="${h/2}" viewBox="0 0 ${w} ${h}">
+  <image width="${w}" height="${h}" xlink:href="${dataUrl}" />
+</svg>`;
+                const blob = new Blob([svg], { type: 'image/svg+xml' });
+                if (window.showSaveFilePicker) {
+                    try {
+                        const handle = await window.showSaveFilePicker({
+                            suggestedName: 'code-image.svg',
+                            types: [{ description: 'SVG Image', accept: { 'image/svg+xml': ['.svg'] } }]
+                        });
+                        const wr = await handle.createWritable();
+                        await wr.write(blob);
+                        await wr.close();
+                        showToast('Đã lưu ảnh SVG thành công!');
+                    } catch (err) {
+                        if (err.name !== 'AbortError') fallbackDownload(blob, 'code-image.svg');
+                    }
+                } else {
+                    fallbackDownload(blob, 'code-image.svg');
+                }
+            } catch (err) {
+                showToast('Lỗi khi tạo SVG: ' + err.message, true);
+            }
+        }
+
+        /* ===== Copy to clipboard ===== */
+        async function copyImage() {
+            try {
+                const canvas = await captureCanvas();
+                canvas.toBlob(async (blob) => {
+                    try {
+                        await navigator.clipboard.write([
+                            new ClipboardItem({ 'image/png': blob })
+                        ]);
+                        showToast('Đã sao chép ảnh vào bộ nhớ tạm!');
+                    } catch (err) {
+                        showToast('Không thể sao chép: ' + err.message, true);
+                    }
+                }, 'image/png');
+            } catch (err) {
+                showToast('Lỗi khi tạo ảnh: ' + err.message, true);
+            }
+        }
+
+        /* ===== Init ===== */
+        updatePreview();
+    </script>
+</body>
+</html>

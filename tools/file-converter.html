@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chuyển đổi tài liệu - NQNghia Tools</title>
+    <link rel="stylesheet" href="../style.css">
+    <style>
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 48px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s, background 0.3s;
+            background: var(--bg-input);
+            margin-top: 16px;
+        }
+
+        .drop-zone:hover,
+        .drop-zone.drag-over {
+            border-color: var(--accent);
+            background: rgba(108, 92, 231, 0.08);
+        }
+
+        .drop-zone-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            opacity: 0.6;
+        }
+
+        .drop-zone-text {
+            color: var(--text-dim);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .drop-zone-text strong {
+            color: var(--accent);
+        }
+
+        .drop-zone input[type="file"] {
+            display: none;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            margin-top: 16px;
+        }
+
+        .file-info-icon {
+            font-size: 28px;
+            flex-shrink: 0;
+        }
+
+        .file-info-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .file-info-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-info-size {
+            color: var(--text-dim);
+            font-size: 0.82rem;
+        }
+
+        .file-info-remove {
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            font-size: 1.3rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: color 0.2s, background 0.2s;
+        }
+
+        .file-info-remove:hover {
+            color: var(--error);
+            background: rgba(255, 107, 107, 0.1);
+        }
+
+        /* Format cards grid */
+        .format-section {
+            margin-top: 20px;
+        }
+
+        .format-section-title {
+            font-size: 0.95rem;
+            color: var(--text-dim);
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+
+        .format-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .format-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .format-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .format-card {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-left: 4px solid #4caf50;
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+            user-select: none;
+        }
+
+        .format-card:hover:not(.disabled) {
+            background: rgba(76, 175, 80, 0.08);
+            border-color: rgba(76, 175, 80, 0.4);
+            border-left-color: #4caf50;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .format-card.disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            border-left-color: var(--border);
+        }
+
+        .format-card-name {
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 4px;
+            color: var(--text);
+        }
+
+        .format-card-desc {
+            font-size: 0.82rem;
+            color: var(--text-dim);
+            line-height: 1.4;
+        }
+
+        /* Progress */
+        .progress-section {
+            margin-top: 20px;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.88rem;
+        }
+
+        .progress-label-status {
+            color: var(--text);
+        }
+
+        .progress-label-percent {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-input);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent), var(--success));
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        /* Result */
+        .result-section {
+            margin-top: 24px;
+            padding: 20px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .result-header-icon {
+            font-size: 24px;
+            color: var(--success);
+        }
+
+        .result-header-text {
+            font-weight: 600;
+            font-size: 1.05rem;
+        }
+
+        .result-files {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+        }
+
+        .result-file-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .result-file-label {
+            color: var(--text-dim);
+            flex-shrink: 0;
+            min-width: 100px;
+        }
+
+        .result-file-name {
+            color: var(--text);
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .btn-save {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: var(--radius-sm);
+            background: var(--success);
+            color: #fff;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn-save:hover {
+            opacity: 0.85;
+        }
+
+        .error-msg {
+            margin-top: 16px;
+            padding: 12px 16px;
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid var(--error);
+            border-radius: var(--radius-sm);
+            color: var(--error);
+            font-size: 0.9rem;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+
+        .converting-info {
+            margin-top: 12px;
+            padding: 10px 14px;
+            background: rgba(108, 92, 231, 0.08);
+            border-radius: var(--radius-sm);
+            font-size: 0.88rem;
+            color: var(--text-dim);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-nav">&larr; Quay lại</a>
+
+        <header>
+            <h1>Chuyển đổi tài liệu</h1>
+            <p class="subtitle">Chuyển đổi tài liệu sang nhiều định dạng khác nhau</p>
+        </header>
+
+        <div class="download-card">
+            <!-- Drop zone -->
+            <div id="dropZone" class="drop-zone">
+                <div class="drop-zone-icon">📄</div>
+                <div class="drop-zone-text">
+                    Kéo và thả tệp vào đây<br>
+                    hoặc <strong>nhấn để chọn tệp</strong><br>
+                    <small>Chấp nhận: .pdf, .doc, .docx, .html, .odt, .ppt, .pptx, .rtf, .txt, .xlsx, .xls, .csv</small>
+                </div>
+                <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.html,.odt,.ppt,.pptx,.rtf,.txt,.xlsx,.xls,.csv">
+            </div>
+
+            <!-- File info -->
+            <div id="fileInfo" class="file-info hidden">
+                <span class="file-info-icon" id="fileIcon">📄</span>
+                <div class="file-info-details">
+                    <div class="file-info-name" id="fileName"></div>
+                    <div class="file-info-size" id="fileSize"></div>
+                </div>
+                <button class="file-info-remove" id="removeFile" title="Xoá tệp">&times;</button>
+            </div>
+
+            <!-- Format selection grid -->
+            <div id="formatSection" class="format-section hidden">
+                <div class="format-section-title">Chọn định dạng đầu ra:</div>
+                <div class="format-grid" id="formatGrid"></div>
+            </div>
+        </div>
+
+        <!-- Converting info -->
+        <div id="convertingInfo" class="converting-info hidden">
+            <span class="spinner"></span>
+            <span id="convertingText">Đang chuyển đổi...</span>
+        </div>
+
+        <!-- Progress -->
+        <div id="progressSection" class="progress-section hidden">
+            <div class="progress-label">
+                <span class="progress-label-status" id="progressStatus">Đang tải lên...</span>
+                <span class="progress-label-percent" id="progressPercent">0%</span>
+            </div>
+            <div class="progress-track">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <!-- Result -->
+        <div id="resultSection" class="result-section hidden">
+            <div class="result-header">
+                <span class="result-header-icon">✅</span>
+                <span class="result-header-text">Chuyển đổi thành công!</span>
+            </div>
+            <div class="result-files">
+                <div class="result-file-row">
+                    <span class="result-file-label">Tệp gốc:</span>
+                    <span class="result-file-name" id="originalName"></span>
+                </div>
+                <div class="result-file-row">
+                    <span class="result-file-label">Kích thước gốc:</span>
+                    <span class="result-file-name" id="originalSize"></span>
+                </div>
+                <div class="result-file-row">
+                    <span class="result-file-label">Tệp đã chuyển:</span>
+                    <span class="result-file-name" id="convertedName"></span>
+                </div>
+            </div>
+            <button id="saveBtn" class="btn-save">💾 Lưu tệp</button>
+        </div>
+
+        <!-- Error -->
+        <div id="errorMsg" class="error-msg hidden"></div>
+    </div>
+
+    <script>
+        (() => {
+            const API_BASE = '/api/file-convert';
+
+            const OUTPUT_FORMATS = [
+                { id: 'doc',  name: 'DOC',  desc: 'Chuyển đổi sang định dạng Word cũ (.doc)',     exts: ['doc'] },
+                { id: 'docx', name: 'DOCX', desc: 'Chuyển đổi sang định dạng Word (.docx)',       exts: ['docx'] },
+                { id: 'html', name: 'HTML', desc: 'Chuyển đổi sang trang web HTML',               exts: ['html', 'htm'] },
+                { id: 'odt',  name: 'ODT',  desc: 'Chuyển đổi sang Open Document (.odt)',         exts: ['odt'] },
+                { id: 'pdf',  name: 'PDF',  desc: 'Chuyển đổi sang PDF',                          exts: ['pdf'] },
+                { id: 'ppt',  name: 'PPT',  desc: 'Chuyển đổi sang PowerPoint cũ (.ppt)',         exts: ['ppt'] },
+                { id: 'pptx', name: 'PPTX', desc: 'Chuyển đổi sang PowerPoint (.pptx)',           exts: ['pptx'] },
+                { id: 'rtf',  name: 'RTF',  desc: 'Chuyển đổi sang Rich Text (.rtf)',             exts: ['rtf'] },
+                { id: 'txt',  name: 'TXT',  desc: 'Chuyển đổi sang văn bản thuần (.txt)',         exts: ['txt'] },
+                { id: 'xlsx', name: 'XLSX', desc: 'Chuyển đổi sang Excel (.xlsx)',                 exts: ['xlsx', 'xls', 'csv'] },
+            ];
+
+            // Elements
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+            const fileInfo = document.getElementById('fileInfo');
+            const fileIcon = document.getElementById('fileIcon');
+            const fileName = document.getElementById('fileName');
+            const fileSize = document.getElementById('fileSize');
+            const removeFileBtn = document.getElementById('removeFile');
+            const formatSection = document.getElementById('formatSection');
+            const formatGrid = document.getElementById('formatGrid');
+            const convertingInfo = document.getElementById('convertingInfo');
+            const convertingText = document.getElementById('convertingText');
+            const progressSection = document.getElementById('progressSection');
+            const progressStatus = document.getElementById('progressStatus');
+            const progressPercent = document.getElementById('progressPercent');
+            const progressFill = document.getElementById('progressFill');
+            const resultSection = document.getElementById('resultSection');
+            const originalNameEl = document.getElementById('originalName');
+            const originalSizeEl = document.getElementById('originalSize');
+            const convertedNameEl = document.getElementById('convertedName');
+            const saveBtn = document.getElementById('saveBtn');
+            const errorMsg = document.getElementById('errorMsg');
+
+            let selectedFile = null;
+            let resultFileId = null;
+            let resultFileName = null;
+            let isConverting = false;
+
+            const VALID_EXTENSIONS = ['pdf', 'doc', 'docx', 'html', 'htm', 'odt', 'ppt', 'pptx', 'rtf', 'txt', 'xlsx', 'xls', 'csv'];
+
+            // File icon mapping
+            function getFileIcon(ext) {
+                const icons = {
+                    pdf: '📕', doc: '📘', docx: '📘', odt: '📘',
+                    ppt: '📙', pptx: '📙',
+                    xlsx: '📗', xls: '📗', csv: '📗',
+                    html: '🌐', htm: '🌐',
+                    rtf: '📝', txt: '📝'
+                };
+                return icons[ext] || '📄';
+            }
+
+            // Drag & drop
+            dropZone.addEventListener('click', () => fileInput.click());
+
+            dropZone.addEventListener('dragover', e => {
+                e.preventDefault();
+                dropZone.classList.add('drag-over');
+            });
+
+            dropZone.addEventListener('dragleave', e => {
+                e.preventDefault();
+                dropZone.classList.remove('drag-over');
+            });
+
+            dropZone.addEventListener('drop', e => {
+                e.preventDefault();
+                dropZone.classList.remove('drag-over');
+                if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
+            });
+
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files.length > 0) handleFile(fileInput.files[0]);
+            });
+
+            function handleFile(file) {
+                const ext = file.name.split('.').pop().toLowerCase();
+
+                if (!VALID_EXTENSIONS.includes(ext)) {
+                    showError('Tệp không hợp lệ. Vui lòng chọn tệp có định dạng được hỗ trợ.');
+                    return;
+                }
+
+                selectedFile = file;
+                hideError();
+                resultSection.classList.add('hidden');
+                progressSection.classList.add('hidden');
+                convertingInfo.classList.add('hidden');
+
+                dropZone.classList.add('hidden');
+                fileInfo.classList.remove('hidden');
+                fileIcon.textContent = getFileIcon(ext);
+                fileName.textContent = file.name;
+                fileSize.textContent = formatSize(file.size);
+
+                buildFormatGrid(ext);
+                formatSection.classList.remove('hidden');
+            }
+
+            function buildFormatGrid(inputExt) {
+                formatGrid.innerHTML = '';
+
+                OUTPUT_FORMATS.forEach(fmt => {
+                    const card = document.createElement('div');
+                    card.className = 'format-card';
+
+                    const isDisabled = fmt.exts.includes(inputExt);
+                    if (isDisabled) card.classList.add('disabled');
+
+                    card.innerHTML = `
+                        <div class="format-card-name">${fmt.name}</div>
+                        <div class="format-card-desc">${fmt.desc}</div>
+                    `;
+
+                    if (!isDisabled) {
+                        card.addEventListener('click', () => {
+                            if (isConverting) return;
+                            startConversion(fmt.id);
+                        });
+                    }
+
+                    formatGrid.appendChild(card);
+                });
+            }
+
+            removeFileBtn.addEventListener('click', () => {
+                resetState();
+            });
+
+            function resetState() {
+                selectedFile = null;
+                resultFileId = null;
+                resultFileName = null;
+                isConverting = false;
+                fileInput.value = '';
+                dropZone.classList.remove('hidden');
+                fileInfo.classList.add('hidden');
+                formatSection.classList.add('hidden');
+                convertingInfo.classList.add('hidden');
+                progressSection.classList.add('hidden');
+                resultSection.classList.add('hidden');
+                hideError();
+                setProgress(0);
+            }
+
+            // Conversion
+            async function startConversion(outputFormat) {
+                if (!selectedFile || isConverting) return;
+
+                isConverting = true;
+                hideError();
+                resultSection.classList.add('hidden');
+
+                // Disable all cards visually
+                formatGrid.querySelectorAll('.format-card:not(.disabled)').forEach(c => {
+                    c.style.pointerEvents = 'none';
+                    c.style.opacity = '0.5';
+                });
+
+                convertingInfo.classList.remove('hidden');
+                convertingText.textContent = `Đang chuyển đổi sang ${outputFormat.toUpperCase()}...`;
+                progressSection.classList.remove('hidden');
+                setProgress(0);
+                progressStatus.textContent = 'Đang tải lên...';
+                progressPercent.textContent = '0%';
+
+                try {
+                    const taskId = await uploadFile(selectedFile, outputFormat);
+                    await pollProgress(taskId, outputFormat);
+                } catch (err) {
+                    showError(err.message || 'Đã xảy ra lỗi trong quá trình chuyển đổi.');
+                    progressSection.classList.add('hidden');
+                    convertingInfo.classList.add('hidden');
+                } finally {
+                    isConverting = false;
+                    // Re-enable cards
+                    formatGrid.querySelectorAll('.format-card:not(.disabled)').forEach(c => {
+                        c.style.pointerEvents = '';
+                        c.style.opacity = '';
+                    });
+                }
+            }
+
+            function uploadFile(file, outputFormat) {
+                return new Promise((resolve, reject) => {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('output_format', outputFormat);
+
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('POST', API_BASE);
+
+                    xhr.upload.addEventListener('progress', e => {
+                        if (e.lengthComputable) {
+                            const pct = Math.round((e.loaded / e.total) * 100);
+                            setProgress(pct);
+                            progressPercent.textContent = pct + '%';
+                            progressStatus.textContent = 'Đang tải lên...';
+                        }
+                    });
+
+                    xhr.addEventListener('load', () => {
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            try {
+                                const data = JSON.parse(xhr.responseText);
+                                if (data.task_id) {
+                                    resolve(data.task_id);
+                                } else {
+                                    reject(new Error('Phản hồi không hợp lệ từ máy chủ.'));
+                                }
+                            } catch {
+                                reject(new Error('Không thể phân tích phản hồi từ máy chủ.'));
+                            }
+                        } else {
+                            let msg = 'Lỗi tải lên tệp.';
+                            try {
+                                const data = JSON.parse(xhr.responseText);
+                                if (data.error || data.message) msg = data.error || data.message;
+                            } catch {}
+                            reject(new Error(msg));
+                        }
+                    });
+
+                    xhr.addEventListener('error', () => reject(new Error('Lỗi kết nối tới máy chủ.')));
+                    xhr.addEventListener('abort', () => reject(new Error('Tải lên bị huỷ.')));
+
+                    xhr.send(formData);
+                });
+            }
+
+            async function pollProgress(taskId, outputFormat) {
+                progressStatus.textContent = 'Đang chuyển đổi...';
+                setProgress(0);
+
+                while (true) {
+                    await sleep(1000);
+
+                    let res;
+                    try {
+                        res = await fetch(`${API_BASE}/progress?task_id=${encodeURIComponent(taskId)}`);
+                    } catch {
+                        throw new Error('Mất kết nối tới máy chủ.');
+                    }
+
+                    if (!res.ok) throw new Error('Lỗi kiểm tra tiến trình.');
+
+                    const data = await res.json();
+
+                    const state = data.status || data.state || '';
+                    const pct = data.percent ?? data.progress ?? 0;
+
+                    if (pct > 0) {
+                        setProgress(Math.round(pct));
+                        progressPercent.textContent = Math.round(pct) + '%';
+                    }
+
+                    if (state === 'processing') {
+                        progressStatus.textContent = 'Đang chuyển đổi...';
+                    }
+
+                    if (state === 'done' || state === 'completed') {
+                        setProgress(100);
+                        progressPercent.textContent = '100%';
+                        progressStatus.textContent = 'Hoàn tất!';
+                        convertingInfo.classList.add('hidden');
+                        showResult(data, outputFormat);
+                        return;
+                    }
+
+                    if (state === 'error' || state === 'failed') {
+                        throw new Error(data.error || 'Chuyển đổi thất bại.');
+                    }
+                }
+            }
+
+            function showResult(data, outputFormat) {
+                resultFileId = data.file_id || data.id || '';
+                resultFileName = data.file_name || data.filename || data.converted_filename || generateConvertedName(selectedFile.name, outputFormat);
+
+                originalNameEl.textContent = selectedFile.name;
+                originalSizeEl.textContent = formatSize(selectedFile.size);
+                convertedNameEl.textContent = resultFileName;
+                resultSection.classList.remove('hidden');
+            }
+
+            function generateConvertedName(original, outputFormat) {
+                const base = original.replace(/\.[^.]+$/, '');
+                return base + '.' + outputFormat;
+            }
+
+            // Save file
+            saveBtn.addEventListener('click', async () => {
+                if (!resultFileId) return;
+
+                const url = `${API_BASE}/file?id=${encodeURIComponent(resultFileId)}`;
+
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error('Không thể tải tệp.');
+
+                    const blob = await response.blob();
+
+                    if (window.showSaveFilePicker) {
+                        await saveWithPicker(blob, resultFileName);
+                    } else {
+                        saveWithFallback(blob, resultFileName);
+                    }
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        showError(err.message || 'Lỗi khi lưu tệp.');
+                    }
+                }
+            });
+
+            async function saveWithPicker(blob, filename) {
+                const ext = filename.split('.').pop().toLowerCase();
+                const mimeTypes = {
+                    pdf:  { desc: 'Tệp PDF',              mime: 'application/pdf',                                                                     ext: '.pdf' },
+                    doc:  { desc: 'Tài liệu Word (.doc)',  mime: 'application/msword',                                                                  ext: '.doc' },
+                    docx: { desc: 'Tài liệu Word (.docx)', mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',              ext: '.docx' },
+                    html: { desc: 'Trang web HTML',         mime: 'text/html',                                                                           ext: '.html' },
+                    odt:  { desc: 'Open Document (.odt)',   mime: 'application/vnd.oasis.opendocument.text',                                             ext: '.odt' },
+                    ppt:  { desc: 'PowerPoint (.ppt)',      mime: 'application/vnd.ms-powerpoint',                                                       ext: '.ppt' },
+                    pptx: { desc: 'PowerPoint (.pptx)',     mime: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',            ext: '.pptx' },
+                    rtf:  { desc: 'Rich Text (.rtf)',       mime: 'application/rtf',                                                                     ext: '.rtf' },
+                    txt:  { desc: 'Văn bản thuần (.txt)',   mime: 'text/plain',                                                                          ext: '.txt' },
+                    xlsx: { desc: 'Excel (.xlsx)',          mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',                    ext: '.xlsx' },
+                };
+
+                const info = mimeTypes[ext];
+                const types = info ? [{ description: info.desc, accept: { [info.mime]: [info.ext] } }] : [];
+
+                try {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: filename,
+                        types
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(blob);
+                    await writable.close();
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        saveWithFallback(blob, filename);
+                    }
+                }
+            }
+
+            function saveWithFallback(blob, filename) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            // Helpers
+            function setProgress(pct) {
+                progressFill.style.width = pct + '%';
+            }
+
+            function showError(msg) {
+                errorMsg.textContent = msg;
+                errorMsg.classList.remove('hidden');
+            }
+
+            function hideError() {
+                errorMsg.classList.add('hidden');
+            }
+
+            function formatSize(bytes) {
+                if (bytes < 1024) return bytes + ' B';
+                if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+                return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+            }
+
+            function sleep(ms) {
+                return new Promise(r => setTimeout(r, ms));
+            }
+        })();
+    </script>
+</body>
+</html>
